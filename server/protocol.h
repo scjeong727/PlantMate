@@ -1,0 +1,19 @@
+#ifndef PROTOCOL_H
+#define PROTOCOL_H
+
+#define REQ_ADD_USER           "ADD_USER"
+#define REQ_GET_USER           "GET_USER"
+#define REQ_REMOVE_USER        "REMOVE_USER"
+
+#define REQ_ADD_PLANT          "ADD_PLANT"
+#define REQ_GET_PLANT          "GET_PLANT"
+#define REQ_REMOVE_PLANT       "REMOVE_PLANT"
+
+#define REQ_POST_SENSOR_DATA   "POST_SENSOR_DATA"
+#define REQ_GET_RECENT_SENSOR  "GET_RECENT_SENSOR"
+#define REQ_GET_RECENT_EVENT   "GET_RECENT_EVENT"
+#define REQ_GET_SENSOR_LIST    "GET_SENSOR_LIST"
+#define REQ_GET_EVENT_LIST     "GET_EVENT_LIST"
+
+#endif
+

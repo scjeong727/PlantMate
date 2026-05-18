@@ -1,0 +1,34 @@
+# Android / Gradle
+**/.gradle/
+**/.idea/
+**/local.properties
+**/build/
+*.iml
+
+# Personal config
+.codex
+
+# C / Ubuntu server build files
+*.o
+*.out
+*.exe
+
+# Compiled binaries
+fake_sensor_client
+
+# Temp / swap files
+*.swp
+*.swo
+*.cswo
+.goutputstream-*
+
+# VS Code
+.vscode/
+
+# Logs
+*.log
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3

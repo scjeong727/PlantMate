@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="primary_blue">#4F83C2</color>
+    <color name="primary_blue_dark">#315D95</color>
+    <color name="secondary_teal">#5E9E8A</color>
+    <color name="danger_red">#C96A5C</color>
+    <color name="surface_card">#FDFEFF</color>
+    <color name="surface_soft">#EEF4FB</color>
+    <color name="surface_section">#F7FAFD</color>
+    <color name="stroke_soft">#C9D8EA</color>
+    <color name="text_primary">#17324D</color>
+    <color name="text_secondary">#5E7490</color>
+    <color name="text_hint">#89A0BA</color>
+    <color name="background_top">#F4F8FD</color>
+    <color name="background_bottom">#E4F0EA</color>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+</resources>
