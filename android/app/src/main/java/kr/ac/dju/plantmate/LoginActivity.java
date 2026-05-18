@@ -27,7 +27,7 @@ public class LoginActivity extends AppCompatActivity {
     private static final String KEY_LAST_HOST = "last_host";
     private static final String KEY_LAST_PROTOCOL = "last_protocol";
     private static final String KEY_LAST_CLIENT_ID = "last_client_id";
-    private static final String DEFAULT_HOST = "192.168.0.34";
+    private static final String DEFAULT_HOST = "192.168.0.106";
     private static final String DEFAULT_CLIENT_ID = "PlantMate-Android";
 
     private EditText editHost;
