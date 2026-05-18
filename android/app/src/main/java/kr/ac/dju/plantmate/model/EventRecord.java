@@ -5,7 +5,7 @@ public class EventRecord {
     private final String createdAt;
     private final String eventType;
     private final String message;
-    private final String plantId ;
+    private final String plantId;
 
     public EventRecord(String createdAt, String eventType, String message, String plantId) {
         this.createdAt = createdAt;
