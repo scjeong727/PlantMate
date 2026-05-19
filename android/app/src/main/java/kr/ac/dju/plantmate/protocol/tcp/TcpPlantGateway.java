@@ -92,6 +92,11 @@ public class TcpPlantGateway implements PlantGateway {
     }
 
     @Override
+    public void robotCommand(int plantId, String action, String detail) throws Exception {
+        repository.robotCommand(plantId, action, detail);
+    }
+
+    @Override
     public String loadWaterHistoryText(int plantId) throws Exception {
         return repository.loadWaterHistoryText(plantId);
     }

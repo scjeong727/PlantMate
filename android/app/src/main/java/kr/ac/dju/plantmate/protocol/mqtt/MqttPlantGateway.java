@@ -286,6 +286,23 @@ public class MqttPlantGateway implements PlantGateway {
     }
 
     @Override
+    public void robotCommand(int plantId, String action, String detail) throws Exception {
+        requireConnected();
+        if (plantId <= 0) {
+            throw new IllegalArgumentException("식물을 선택하세요.");
+        }
+        if (action == null || action.trim().isEmpty()) {
+            throw new IllegalArgumentException("로봇 동작을 입력하세요.");
+        }
+        sendRequest("robotCommand", request -> {
+            request.put("plantId", plantId);
+            request.put("robotAction", action.trim());
+            request.put("detail", detail == null ? "" : detail.trim());
+        });
+        appendEvent("MQTT 로봇 명령 전송 완료");
+    }
+
+    @Override
     public String loadWaterHistoryText(int plantId) throws Exception {
         List<EventRecord> events = responseParser.parseEventHistory("OK " + requireData(sendRequest(
                 "getEventHistory",
