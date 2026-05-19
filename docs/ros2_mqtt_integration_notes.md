@@ -651,3 +651,259 @@ Reason:
   Jetrover device.
 - It allows the fake MQTT client to be replaced later by a real Jetrover gateway.
 - It avoids requiring the server machine itself to have ROS2 installed immediately.
+
+## Next-Day Handoff Summary
+
+Date prepared: 2026-05-19
+
+### Repository State
+
+Use the WSL Git metadata directory when running Git commands from this workspace:
+
+```bash
+git --git-dir=/mnt/c/Users/user/DeploymentProgram/.git-wsl --work-tree=/mnt/c/Users/user/DeploymentProgram status --short --branch
+```
+
+Current branch:
+
+```text
+develop
+```
+
+Current pushed state:
+
+```text
+87594d5 (HEAD -> develop, origin/develop) Update ROS bridge test command docs
+57d0b47 Align server commands with ROS bridge topic
+76d8a42 update mysql db
+```
+
+The `develop` branch has been pushed to:
+
+```text
+https://github.com/scjeong727/PlantMate.git
+```
+
+Current remaining local-only file:
+
+```text
+server/plant_db_backup_20260519_154201.sql
+```
+
+This file is an extra timestamped DB backup and is not committed. The tracked DB
+backup file from commit `76d8a42` is:
+
+```text
+server/plant_db_backup.sql
+```
+
+If the DB file from `76d8a42` needs to be restored again:
+
+```bash
+git --git-dir=/mnt/c/Users/user/DeploymentProgram/.git-wsl --work-tree=/mnt/c/Users/user/DeploymentProgram restore --source 76d8a42 -- server/plant_db_backup.sql
+```
+
+### Current Working Architecture
+
+The current verified command path is:
+
+```text
+Android App or TCP client
+-> Server
+-> MQTT broker
+-> /plantmate/robot_command
+-> fake_ros2_mqtt_client or future Jetrover ROS bridge
+```
+
+Current command topic:
+
+```text
+/plantmate/robot_command
+```
+
+Move payload example:
+
+```json
+{"plantId":5,"action":"move","detail":"linear=0.200 angular=0.000"}
+```
+
+Water payload example:
+
+```json
+{"plantId":5,"action":"water","detail":"duration=3"}
+```
+
+### Files Changed In This Work
+
+Important server files:
+
+```text
+server/request_thread.c
+server/mqtt_adapter.c
+server/mqtt_adapter.h
+server/ros2_bridge.c
+server/ros2_bridge.h
+server/fake_ros2_mqtt_client.py
+```
+
+Important Android files:
+
+```text
+android/app/src/main/java/kr/ac/dju/plantmate/ui/RobotFragment.java
+android/app/src/main/res/layout/fragment_robot.xml
+android/app/src/main/res/menu/menu_bottom_navigation.xml
+android/app/src/main/java/kr/ac/dju/plantmate/MainActivity.java
+android/app/src/main/java/kr/ac/dju/plantmate/protocol/PlantGateway.java
+android/app/src/main/java/kr/ac/dju/plantmate/protocol/tcp/TcpPlantGateway.java
+android/app/src/main/java/kr/ac/dju/plantmate/protocol/mqtt/MqttPlantGateway.java
+android/app/src/main/java/kr/ac/dju/plantmate/repository/PlantRepository.java
+android/app/src/main/java/kr/ac/dju/plantmate/service/PlantClientService.java
+```
+
+Important ROS2 files:
+
+```text
+ros2/plantmate_jetrover_bridge/robot_controller/robot_command_node.py
+ros2/plantmate_jetrover_bridge/robot_controller/사용방법.txt
+ros2/plantmate_jetrover_bridge/action_groups/watering_demo.d6a
+ros2/plantmate_jetrover_bridge/action_groups/watering_end_demo.d6a
+```
+
+### Quick Manual Test
+
+Terminal 1:
+
+```bash
+cd /mnt/c/Users/user/DeploymentProgram/server
+make -B
+./server
+```
+
+Terminal 2:
+
+```bash
+cd /mnt/c/Users/user/DeploymentProgram/server
+python3 fake_ros2_mqtt_client.py --host 127.0.0.1 --topic /plantmate/robot_command --show-topic
+```
+
+Terminal 3, move:
+
+```bash
+{
+  printf 'LOGIN 1 1\n'
+  sleep 0.3
+  printf 'ROBOT_COMMAND 5 move linear=0.200 angular=0.000\n'
+  sleep 0.5
+} | nc -w 2 127.0.0.1 9000
+```
+
+Expected fake client output:
+
+```text
+/plantmate/robot_command {"plantId":5,"action":"move","detail":"linear=0.200 angular=0.000"}
+```
+
+Terminal 3, water:
+
+```bash
+{
+  printf 'LOGIN 1 1\n'
+  sleep 0.3
+  printf 'WATER_PLANT 5 3\n'
+  sleep 0.8
+} | nc -w 3 127.0.0.1 9000
+```
+
+Expected fake client output:
+
+```text
+/plantmate/robot_command {"plantId":5,"action":"water","detail":"duration=3"}
+```
+
+### Android Test Reminder
+
+Open this project in Android Studio:
+
+```text
+C:\Users\user\DeploymentProgram\android
+```
+
+Run setup:
+
+```text
+1. Sync Gradle.
+2. Start server and fake_ros2_mqtt_client.
+3. Run the Android app.
+4. Login with TCP/IP mode.
+5. Use host 10.0.2.2 for emulator, or the server PC LAN IP for a physical phone.
+6. Use port 9000.
+7. Open the 로봇 tab and press 이동.
+```
+
+Current Android Gradle Plugin version:
+
+```toml
+agp = "9.1.0"
+```
+
+### Database Reminder
+
+Current database name:
+
+```text
+plant_db
+```
+
+Current `plant_id=5` bindings:
+
+```text
+plant_id  role   device_type  device_id
+5         water  water        jetrover-1
+5         robot  jetrover     jetrover-1
+```
+
+Check bindings:
+
+```bash
+mysql -uroot -p1234 plant_db -e "SELECT plant_id, role, device_type, device_id FROM mqtt_device_bindings WHERE plant_id=5;"
+```
+
+After changing bindings, restart `./server` because bindings are preloaded on
+server startup.
+
+### Recommended Next Work For Tomorrow
+
+1. Add plant location columns to the `plants` table:
+
+```sql
+ALTER TABLE plants
+ADD COLUMN location_x DOUBLE NOT NULL DEFAULT 0,
+ADD COLUMN location_y DOUBLE NOT NULL DEFAULT 0,
+ADD COLUMN location_z DOUBLE NOT NULL DEFAULT 0,
+ADD COLUMN location_label VARCHAR(64) NOT NULL DEFAULT '';
+```
+
+2. Update the server payload builder so bridge commands include location data
+looked up by `plantId`.
+
+3. Update Android robot UI so the user can select:
+
+```text
+식물 선택
+Jetrover 선택
+로봇 연결
+```
+
+4. Update the ROS bridge node:
+
+- Accept `move`.
+- Parse `linear` and `angular` from `detail`.
+- Publish `geometry_msgs/msg/Twist` to `/cmd_vel`.
+- Keep `water` support.
+- Later connect `water` to the restored JetRover action group files.
+
+5. Decide whether to keep or delete the local-only backup:
+
+```text
+server/plant_db_backup_20260519_154201.sql
+```
