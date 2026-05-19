@@ -7,11 +7,17 @@
 
 # Personal config
 .codex
+.agents/
+.git-wsl/
 
 # C / Ubuntu server build files
 *.o
 *.out
 *.exe
+
+# Python cache files
+__pycache__/
+*.py[cod]
 
 # Compiled binaries
 fake_sensor_client

@@ -38,6 +38,8 @@ public interface PlantGateway {
 
     void waterPlant(int plantId, int duration) throws Exception;
 
+    void robotCommand(int plantId, String action, String detail) throws Exception;
+
     String loadWaterHistoryText(int plantId) throws Exception;
 
     void close() throws IOException;

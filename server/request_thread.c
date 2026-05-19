@@ -6,6 +6,7 @@
 #include <sys/select.h>
 #include <signal.h>
 #include <dirent.h>
+#include <ctype.h>
 
 #include "session_manager.h"
 #include "db_queue.h"
@@ -15,6 +16,9 @@
 #include "event_log.h"
 #include "plant_owner_cache.h"
 #include "device_lock.h"
+#include "ros2_bridge.h"
+#include "mqtt_adapter.h"
+#include "mqtt_device_registry.h"
 
 #define PORT 9000
 #define BUF_SIZE 4096
@@ -175,6 +179,22 @@ static int require_owned_plant(int client_sock, int plant_id)
     return plant_owner_cache_exists_by_user(plant_id, user_id);
 }
 
+static int is_safe_robot_action(const char* action)
+{
+    size_t i;
+
+    if (!action || action[0] == '\0')
+        return 0;
+
+    for (i = 0; action[i] != '\0'; ++i) {
+        if (!isalnum((unsigned char)action[i]) &&
+            action[i] != '_' &&
+            action[i] != '-')
+            return 0;
+    }
+
+    return 1;
+}
 
 static void handle_cache_query(int client_sock, const char* buf)
 {
@@ -469,6 +489,47 @@ static void handle_sensor_stream_command(int client_sock, const char* buf)
     send(client_sock, "ERROR invalid_sensor_stream_command\n", 36, 0);
 }
 
+static void handle_robot_command(int client_sock, const char* buf)
+{
+    int plant_id;
+    char action[ROS2_BRIDGE_ACTION_MAX];
+    char detail[ROS2_BRIDGE_DETAIL_MAX];
+    MqttDeviceBinding mqtt_binding;
+
+    memset(action, 0, sizeof(action));
+    memset(detail, 0, sizeof(detail));
+
+    if (sscanf(buf, "ROBOT_COMMAND %d %63s %255[^\n]", &plant_id, action, detail) < 2) {
+        send(client_sock, "ERROR usage: ROBOT_COMMAND plant_id action [detail]\n", 51, 0);
+        return;
+    }
+
+    if (!is_safe_robot_action(action)) {
+        send(client_sock, "ERROR invalid_robot_action\n", 27, 0);
+        return;
+    }
+
+    if (!require_owned_plant(client_sock, plant_id)) {
+        send(client_sock, "ERROR plant_not_owned\n", 22, 0);
+        return;
+    }
+
+    if (mqtt_device_registry_get(plant_id, "robot", &mqtt_binding)) {
+        mqtt_adapter_publish_bridge_command(plant_id, action, detail);
+        printf("robot command delegated to mqtt ros bridge: topic=%s device=%s/%s action=%s\n",
+            ROS2_BRIDGE_TOPIC_DEFAULT, mqtt_binding.device_type, mqtt_binding.device_id, action);
+        send(client_sock, "OK {\"message\":\"robot_command_published\"}\n", 42, 0);
+        return;
+    }
+
+    if (ros2_bridge_publish_command(plant_id, action, detail)) {
+        send(client_sock, "OK {\"message\":\"robot_command_published\"}\n", 42, 0);
+        return;
+    }
+
+    send(client_sock, "ERROR robot_command_publish_failed\n", 35, 0);
+}
+
 
 void* request_thread_main(void* arg)
 {
@@ -595,6 +656,10 @@ void* request_thread_main(void* arg)
                 {
                     handle_sensor_stream_command(i, buf);
                 }
+                else if (strncmp(buf, "ROBOT_COMMAND ", 14) == 0)
+                {
+                    handle_robot_command(i, buf);
+                }
 
                 else if (strncmp(buf, "WATER_PLANT ", 12) == 0)
                 {
@@ -680,5 +745,3 @@ void* request_thread_main(void* arg)
     close(server_sock);
     return NULL;
 }
-
-

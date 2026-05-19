@@ -1,6 +1,6 @@
 -- MySQL dump 10.13  Distrib 8.0.45, for Linux (x86_64)
 --
--- Host: localhost    Database: plant_db
+-- Host: 127.0.0.1    Database: plant_db
 -- ------------------------------------------------------
 -- Server version	8.0.45-0ubuntu0.24.04.1
 
@@ -14,6 +14,14 @@
 /*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
 /*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
+
+--
+-- Current Database: `plant_db`
+--
+
+CREATE DATABASE /*!32312 IF NOT EXISTS*/ `plant_db` /*!40100 DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci */ /*!80016 DEFAULT ENCRYPTION='N' */;
+
+USE `plant_db`;
 
 --
 -- Table structure for table `events`
@@ -31,7 +39,7 @@ CREATE TABLE `events` (
   PRIMARY KEY (`id`),
   KEY `plant_id` (`plant_id`),
   CONSTRAINT `events_ibfk_1` FOREIGN KEY (`plant_id`) REFERENCES `plants` (`plant_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=14 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=16 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -40,8 +48,65 @@ CREATE TABLE `events` (
 
 LOCK TABLES `events` WRITE;
 /*!40000 ALTER TABLE `events` DISABLE KEYS */;
-INSERT INTO `events` VALUES (10,5,'TEMP_ALERT','Temperature too high','2026-03-15 08:36:43'),(11,5,'HUMI_ALERT','Humidity too low','2026-03-15 08:36:43'),(12,5,'SOIL_ALERT','Soil moisture too low','2026-03-15 08:36:43'),(13,5,'LIGHT_ALERT','Light too high','2026-03-15 08:36:43');
+INSERT INTO `events` VALUES (10,5,'TEMP_ALERT','Temperature too high','2026-03-15 08:36:43'),(11,5,'HUMI_ALERT','Humidity too low','2026-03-15 08:36:43'),(12,5,'SOIL_ALERT','Soil moisture too low','2026-03-15 08:36:43'),(13,5,'LIGHT_ALERT','Light too high','2026-03-15 08:36:43'),(14,5,'WATERING_SENT','Watering_command_published','2026-05-19 10:15:51'),(15,5,'WATERING_SENT','Watering_command_published','2026-05-19 10:16:49');
 /*!40000 ALTER TABLE `events` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `mqtt_device_bindings`
+--
+
+DROP TABLE IF EXISTS `mqtt_device_bindings`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `mqtt_device_bindings` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `plant_id` int NOT NULL,
+  `role` varchar(31) NOT NULL,
+  `device_type` varchar(31) NOT NULL,
+  `device_id` varchar(63) NOT NULL,
+  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_plant_role` (`plant_id`,`role`)
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `mqtt_device_bindings`
+--
+
+LOCK TABLES `mqtt_device_bindings` WRITE;
+/*!40000 ALTER TABLE `mqtt_device_bindings` DISABLE KEYS */;
+INSERT INTO `mqtt_device_bindings` VALUES (1,5,'water','water','jetrover-1','2026-05-19 10:14:33'),(2,5,'robot','jetrover','jetrover-1','2026-05-19 11:07:46');
+/*!40000 ALTER TABLE `mqtt_device_bindings` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `mqtt_live_devices`
+--
+
+DROP TABLE IF EXISTS `mqtt_live_devices`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `mqtt_live_devices` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `device_type` varchar(31) NOT NULL,
+  `device_id` varchar(63) NOT NULL,
+  `online` tinyint(1) NOT NULL DEFAULT '0',
+  `status_payload` varchar(255) NOT NULL DEFAULT '',
+  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_device` (`device_type`,`device_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `mqtt_live_devices`
+--
+
+LOCK TABLES `mqtt_live_devices` WRITE;
+/*!40000 ALTER TABLE `mqtt_live_devices` DISABLE KEYS */;
+/*!40000 ALTER TABLE `mqtt_live_devices` ENABLE KEYS */;
 UNLOCK TABLES;
 
 --
@@ -57,6 +122,14 @@ CREATE TABLE `plants` (
   `name` varchar(100) NOT NULL,
   `type` varchar(100) NOT NULL DEFAULT 'unknown',
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `temp_min` double NOT NULL DEFAULT '0',
+  `temp_max` double NOT NULL DEFAULT '100',
+  `humi_min` double NOT NULL DEFAULT '0',
+  `humi_max` double NOT NULL DEFAULT '100',
+  `soil_min` int NOT NULL DEFAULT '0',
+  `soil_max` int NOT NULL DEFAULT '100',
+  `light_min` int NOT NULL DEFAULT '0',
+  `light_max` int NOT NULL DEFAULT '1000',
   PRIMARY KEY (`plant_id`),
   KEY `fk_plants_user` (`user_id`),
   CONSTRAINT `fk_plants_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE
@@ -69,7 +142,7 @@ CREATE TABLE `plants` (
 
 LOCK TABLES `plants` WRITE;
 /*!40000 ALTER TABLE `plants` DISABLE KEYS */;
-INSERT INTO `plants` VALUES (5,5,'1','1','2026-03-15 06:44:43'),(6,6,'2','2','2026-03-15 06:46:41'),(8,5,'55','55','2026-03-15 06:56:44'),(9,5,'44','44','2026-03-15 06:56:57');
+INSERT INTO `plants` VALUES (5,5,'1','1','2026-03-15 06:44:43',5,60,0,100,0,100,0,1000),(6,6,'2','2','2026-03-15 06:46:41',0,100,0,100,0,100,0,1000),(8,5,'55','55','2026-03-15 06:56:44',0,100,0,100,0,100,0,1000),(9,5,'44','44','2026-03-15 06:56:57',0,100,0,100,0,100,0,1000);
 /*!40000 ALTER TABLE `plants` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -156,6 +229,14 @@ LOCK TABLES `watering_log` WRITE;
 /*!40000 ALTER TABLE `watering_log` DISABLE KEYS */;
 /*!40000 ALTER TABLE `watering_log` ENABLE KEYS */;
 UNLOCK TABLES;
+
+--
+-- Dumping events for database 'plant_db'
+--
+
+--
+-- Dumping routines for database 'plant_db'
+--
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
@@ -166,4 +247,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-03-15 13:35:04
+-- Dump completed on 2026-05-19 15:42:26

@@ -1,4 +1,5 @@
 #include <arpa/inet.h>
+#include <ctype.h>
 #include <errno.h>
 #include <mysql/mysql.h>
 #include <pthread.h>
@@ -21,6 +22,7 @@
 #include "plant_owner_cache.h"
 #include "plant_service.h"
 #include "plant_threshold_cache.h"
+#include "ros2_bridge.h"
 #include "sensor_buffer.h"
 #include "sensor_event_dispatcher.h"
 #include "sensor_repository.h"
@@ -46,6 +48,51 @@ typedef struct {
 
 static MqttClient g_clients[MQTT_MAX_CLIENTS];
 static pthread_mutex_t g_clients_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+static int mqtt_is_safe_robot_action(const char* action)
+{
+    size_t i;
+
+    if (!action || action[0] == '\0')
+        return 0;
+
+    for (i = 0; action[i] != '\0'; i++) {
+        if (!isalnum((unsigned char)action[i]) &&
+            action[i] != '_' &&
+            action[i] != '-')
+            return 0;
+    }
+
+    return 1;
+}
+
+static void mqtt_copy_json_string(char* out, size_t out_size, const char* in)
+{
+    size_t pos = 0;
+    size_t i;
+
+    if (!out || out_size == 0)
+        return;
+
+    out[0] = '\0';
+    if (!in)
+        return;
+
+    for (i = 0; in[i] != '\0' && pos + 2 < out_size; i++) {
+        if (in[i] == '"' || in[i] == '\\') {
+            if (pos + 3 >= out_size)
+                break;
+            out[pos++] = '\\';
+            out[pos++] = in[i];
+        } else if (in[i] == '\'' || (unsigned char)in[i] < 32) {
+            out[pos++] = ' ';
+        } else {
+            out[pos++] = in[i];
+        }
+    }
+
+    out[pos] = '\0';
+}
 
 static int recv_full(int sock, unsigned char* buf, int len)
 {
@@ -268,6 +315,27 @@ void mqtt_adapter_publish_device_command(const char* device_type, const char* de
     mqtt_topic_build_device_command(device_type, device_id, action, topic, sizeof(topic));
     if (topic[0] == '\0')
         return;
+
+    mqtt_publish_to_subscribers(topic, payload);
+}
+
+void mqtt_adapter_publish_bridge_command(int plant_id, const char* action, const char* detail)
+{
+    const char* topic;
+    char escaped_detail[ROS2_BRIDGE_DETAIL_MAX * 2];
+    char payload[512];
+
+    if (plant_id <= 0 || !action || action[0] == '\0')
+        return;
+
+    topic = getenv("PLANTMATE_ROS2_TOPIC");
+    if (!topic || topic[0] == '\0')
+        topic = ROS2_BRIDGE_TOPIC_DEFAULT;
+
+    mqtt_copy_json_string(escaped_detail, sizeof(escaped_detail), detail ? detail : "");
+    snprintf(payload, sizeof(payload),
+        "{\"plantId\":%d,\"action\":\"%s\",\"detail\":\"%s\"}",
+        plant_id, action, escaped_detail);
 
     mqtt_publish_to_subscribers(topic, payload);
 }
@@ -805,6 +873,39 @@ static void handle_rpc_publish(MqttClient* client, MYSQL* conn, const char* payl
             "{\"message\":\"device_unbound\",\"plantId\":%d,\"role\":\"%s\"}",
             plant_id, role);
         mqtt_publish_rpc_ok_raw(client, request_id, out);
+        return;
+    }
+
+    if (strcmp(action, "robotCommand") == 0) {
+        char robot_action[ROS2_BRIDGE_ACTION_MAX];
+        char detail[ROS2_BRIDGE_DETAIL_MAX];
+        MqttDeviceBinding binding;
+
+        memset(detail, 0, sizeof(detail));
+        if (!json_extract_int(payload, "plantId", &plant_id) || plant_id <= 0 ||
+            !mqtt_extract_required_string(payload, "robotAction", robot_action, sizeof(robot_action))) {
+            mqtt_publish_rpc_error(client, request_id, "invalid_robot_command_args");
+            return;
+        }
+
+        json_extract_string(payload, "detail", detail, sizeof(detail));
+        if (!mqtt_is_safe_robot_action(robot_action)) {
+            mqtt_publish_rpc_error(client, request_id, "invalid_robot_action");
+            return;
+        }
+
+        if (mqtt_device_registry_get(plant_id, "robot", &binding)) {
+            mqtt_adapter_publish_bridge_command(plant_id, robot_action, detail);
+            mqtt_publish_rpc_ok_raw(client, request_id, "{\"message\":\"robot_command_published\"}");
+            return;
+        }
+
+        if (ros2_bridge_publish_command(plant_id, robot_action, detail)) {
+            mqtt_publish_rpc_ok_raw(client, request_id, "{\"message\":\"robot_command_published\"}");
+            return;
+        }
+
+        mqtt_publish_rpc_error(client, request_id, "robot_command_publish_failed");
         return;
     }
 

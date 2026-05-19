@@ -180,6 +180,14 @@ public class PlantClientService extends Service {
         });
     }
 
+    public void robotCommand(int plantId, String action, String detail, ServiceCallback<String> callback) {
+        runTask(callback, () -> {
+            requireLogin();
+            gateway.robotCommand(plantId, action, detail);
+            return "로봇 명령 전송 완료";
+        });
+    }
+
     public void loadWaterHistory(int plantId, ServiceCallback<String> callback) {
         runTask(callback, () -> {
             requireLogin();

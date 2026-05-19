@@ -14,6 +14,7 @@
 #include "watering_lock.h"
 #include "device_lock.h"
 #include "mqtt_adapter.h"
+#include "ros2_bridge.h"
 
 #define WATER_BAUDRATE B9600
 
@@ -92,6 +93,7 @@ void* watering_thread_main(void* arg)
     while (1) {
         int ok = 0;
         int dispatched_to_mqtt_device = 0;
+        int dispatched_to_ros2 = 0;
         int serial_fd = -1;
         char device_path[256];
         DBRequest req;
@@ -105,22 +107,23 @@ void* watering_thread_main(void* arg)
 
         if (!device_lock_get_device_by_owner(&g_water_device_lock, cmd.owner_sock, device_path, sizeof(device_path))) {
             if (mqtt_device_registry_get(cmd.plant_id, "water", &mqtt_binding)) {
-                char payload[256];
-                snprintf(payload, sizeof(payload),
-                    "{\"plantId\":%d,\"duration\":%d}",
-                    cmd.plant_id, cmd.duration);
-                mqtt_adapter_publish_device_command(
-                    mqtt_binding.device_type,
-                    mqtt_binding.device_id,
-                    "water",
-                    payload
-                );
+                char detail[128];
+                snprintf(detail, sizeof(detail), "duration=%d", cmd.duration);
+                mqtt_adapter_publish_bridge_command(cmd.plant_id, "water", detail);
                 dispatched_to_mqtt_device = 1;
                 ok = 1;
-                printf("watering delegated to mqtt device: type=%s id=%s\n",
+                printf("watering delegated to mqtt ros bridge: type=%s id=%s\n",
                     mqtt_binding.device_type, mqtt_binding.device_id);
             } else {
-                printf("watering device path not found\n");
+                char detail[128];
+                snprintf(detail, sizeof(detail), "duration=%d", cmd.duration);
+                if (ros2_bridge_publish_command(cmd.plant_id, "water", detail)) {
+                    dispatched_to_ros2 = 1;
+                    ok = 1;
+                    printf("watering delegated to ros2 topic\n");
+                } else {
+                    printf("watering device path not found\n");
+                }
             }
         } else {
             serial_fd = water_serial_open(device_path);
@@ -139,7 +142,7 @@ void* watering_thread_main(void* arg)
 
         printf("watering end: plant_id=%d, ok=%d\n", cmd.plant_id, ok);
 
-        if (dispatched_to_mqtt_device) {
+        if (dispatched_to_mqtt_device || dispatched_to_ros2) {
             event_log_push(&g_event_log, cmd.plant_id, "WATERING_SENT", "Watering_command_published");
             mqtt_adapter_publish_status(cmd.plant_id, "{\"eventType\":\"WATERING_SENT\",\"message\":\"Watering_command_published\"}");
         } else if (ok) {
@@ -157,8 +160,8 @@ void* watering_thread_main(void* arg)
         snprintf(req.query, DB_QUERY_SIZE,
                  "INSERT_EVENT %d %s %s",
                  cmd.plant_id,
-                 dispatched_to_mqtt_device ? "WATERING_SENT" : (ok ? "WATERING_DONE" : "WATERING_FAIL"),
-                 dispatched_to_mqtt_device ? "Watering_command_published" : (ok ? "Watering_completed" : "Watering_failed"));
+                 (dispatched_to_mqtt_device || dispatched_to_ros2) ? "WATERING_SENT" : (ok ? "WATERING_DONE" : "WATERING_FAIL"),
+                 (dispatched_to_mqtt_device || dispatched_to_ros2) ? "Watering_command_published" : (ok ? "Watering_completed" : "Watering_failed"));
 
         db_queue_push(&g_db_queue, &req);
         watering_end(cmd.plant_id);

@@ -166,6 +166,21 @@ public class PlantRepository {
         parser.requireOk(socketClient.sendCommand("WATER_PLANT " + plantId + " " + duration));
     }
 
+    public void robotCommand(int plantId, String action, String detail) throws IOException {
+        if (plantId <= 0) {
+            throw new IllegalArgumentException("식물을 선택하세요.");
+        }
+        if (action == null || action.trim().isEmpty()) {
+            throw new IllegalArgumentException("로봇 동작을 입력하세요.");
+        }
+        String trimmedDetail = detail == null ? "" : detail.trim();
+        String command = "ROBOT_COMMAND " + plantId + " " + action.trim();
+        if (!trimmedDetail.isEmpty()) {
+            command += " " + trimmedDetail;
+        }
+        parser.requireOk(socketClient.sendCommand(command));
+    }
+
     public String loadWaterHistoryText(int plantId) throws IOException {
         List<EventRecord> events = parser.parseEventHistory(
                 socketClient.sendCommand("GET_EVENT_LIST_BY_PLANT " + plantId + " 20")

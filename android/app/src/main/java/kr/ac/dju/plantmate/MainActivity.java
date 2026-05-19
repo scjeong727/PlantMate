@@ -19,6 +19,7 @@ import com.google.android.material.bottomnavigation.BottomNavigationView;
 import kr.ac.dju.plantmate.service.PlantClientService;
 import kr.ac.dju.plantmate.ui.MonitorFragment;
 import kr.ac.dju.plantmate.ui.PlantFragment;
+import kr.ac.dju.plantmate.ui.RobotFragment;
 import kr.ac.dju.plantmate.ui.WaterFragment;
 
 public class MainActivity extends AppCompatActivity {
@@ -101,6 +102,11 @@ public class MainActivity extends AppCompatActivity {
                 openFragment(new WaterFragment());
                 return true;
             }
+            if (item.getItemId() == R.id.menu_robot) {
+                updateHeaderTitle(R.id.menu_robot);
+                openFragment(new RobotFragment());
+                return true;
+            }
             return false;
         });
     }
@@ -143,6 +149,11 @@ public class MainActivity extends AppCompatActivity {
 
         if (menuId == R.id.menu_water) {
             textCurrentScreen.setText("급수 시스템");
+            return;
+        }
+
+        if (menuId == R.id.menu_robot) {
+            textCurrentScreen.setText("로봇 제어");
         }
     }
 }
