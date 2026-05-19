@@ -196,35 +196,6 @@ static int is_safe_robot_action(const char* action)
     return 1;
 }
 
-static void copy_json_string(char* out, size_t out_size, const char* in)
-{
-    size_t pos = 0;
-    size_t i;
-
-    if (!out || out_size == 0)
-        return;
-
-    out[0] = '\0';
-    if (!in)
-        return;
-
-    for (i = 0; in[i] != '\0' && pos + 2 < out_size; ++i) {
-        if (in[i] == '"' || in[i] == '\\') {
-            if (pos + 3 >= out_size)
-                break;
-            out[pos++] = '\\';
-            out[pos++] = in[i];
-        } else if ((unsigned char)in[i] < 32) {
-            out[pos++] = ' ';
-        } else {
-            out[pos++] = in[i];
-        }
-    }
-
-    out[pos] = '\0';
-}
-
-
 static void handle_cache_query(int client_sock, const char* buf)
 {
     char out[16384];
@@ -523,8 +494,6 @@ static void handle_robot_command(int client_sock, const char* buf)
     int plant_id;
     char action[ROS2_BRIDGE_ACTION_MAX];
     char detail[ROS2_BRIDGE_DETAIL_MAX];
-    char escaped_detail[ROS2_BRIDGE_DETAIL_MAX * 2];
-    char payload[512];
     MqttDeviceBinding mqtt_binding;
 
     memset(action, 0, sizeof(action));
@@ -546,18 +515,9 @@ static void handle_robot_command(int client_sock, const char* buf)
     }
 
     if (mqtt_device_registry_get(plant_id, "robot", &mqtt_binding)) {
-        copy_json_string(escaped_detail, sizeof(escaped_detail), detail);
-        snprintf(payload, sizeof(payload),
-            "{\"plantId\":%d,\"action\":\"%s\",\"detail\":\"%s\"}",
-            plant_id, action, escaped_detail);
-        mqtt_adapter_publish_device_command(
-            mqtt_binding.device_type,
-            mqtt_binding.device_id,
-            action,
-            payload
-        );
-        printf("robot command delegated to mqtt device: type=%s id=%s action=%s\n",
-            mqtt_binding.device_type, mqtt_binding.device_id, action);
+        mqtt_adapter_publish_bridge_command(plant_id, action, detail);
+        printf("robot command delegated to mqtt ros bridge: topic=%s device=%s/%s action=%s\n",
+            ROS2_BRIDGE_TOPIC_DEFAULT, mqtt_binding.device_type, mqtt_binding.device_id, action);
         send(client_sock, "OK {\"message\":\"robot_command_published\"}\n", 42, 0);
         return;
     }

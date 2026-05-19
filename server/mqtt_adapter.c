@@ -319,6 +319,27 @@ void mqtt_adapter_publish_device_command(const char* device_type, const char* de
     mqtt_publish_to_subscribers(topic, payload);
 }
 
+void mqtt_adapter_publish_bridge_command(int plant_id, const char* action, const char* detail)
+{
+    const char* topic;
+    char escaped_detail[ROS2_BRIDGE_DETAIL_MAX * 2];
+    char payload[512];
+
+    if (plant_id <= 0 || !action || action[0] == '\0')
+        return;
+
+    topic = getenv("PLANTMATE_ROS2_TOPIC");
+    if (!topic || topic[0] == '\0')
+        topic = ROS2_BRIDGE_TOPIC_DEFAULT;
+
+    mqtt_copy_json_string(escaped_detail, sizeof(escaped_detail), detail ? detail : "");
+    snprintf(payload, sizeof(payload),
+        "{\"plantId\":%d,\"action\":\"%s\",\"detail\":\"%s\"}",
+        plant_id, action, escaped_detail);
+
+    mqtt_publish_to_subscribers(topic, payload);
+}
+
 void mqtt_adapter_publish_device_status(const char* device_type, const char* device_id, const char* payload)
 {
     char topic[128];
@@ -858,8 +879,6 @@ static void handle_rpc_publish(MqttClient* client, MYSQL* conn, const char* payl
     if (strcmp(action, "robotCommand") == 0) {
         char robot_action[ROS2_BRIDGE_ACTION_MAX];
         char detail[ROS2_BRIDGE_DETAIL_MAX];
-        char escaped_detail[ROS2_BRIDGE_DETAIL_MAX * 2];
-        char command_payload[512];
         MqttDeviceBinding binding;
 
         memset(detail, 0, sizeof(detail));
@@ -876,16 +895,7 @@ static void handle_rpc_publish(MqttClient* client, MYSQL* conn, const char* payl
         }
 
         if (mqtt_device_registry_get(plant_id, "robot", &binding)) {
-            mqtt_copy_json_string(escaped_detail, sizeof(escaped_detail), detail);
-            snprintf(command_payload, sizeof(command_payload),
-                "{\"plantId\":%d,\"action\":\"%s\",\"detail\":\"%s\"}",
-                plant_id, robot_action, escaped_detail);
-            mqtt_adapter_publish_device_command(
-                binding.device_type,
-                binding.device_id,
-                robot_action,
-                command_payload
-            );
+            mqtt_adapter_publish_bridge_command(plant_id, robot_action, detail);
             mqtt_publish_rpc_ok_raw(client, request_id, "{\"message\":\"robot_command_published\"}");
             return;
         }

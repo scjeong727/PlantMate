@@ -107,19 +107,12 @@ void* watering_thread_main(void* arg)
 
         if (!device_lock_get_device_by_owner(&g_water_device_lock, cmd.owner_sock, device_path, sizeof(device_path))) {
             if (mqtt_device_registry_get(cmd.plant_id, "water", &mqtt_binding)) {
-                char payload[256];
-                snprintf(payload, sizeof(payload),
-                    "{\"plantId\":%d,\"duration\":%d}",
-                    cmd.plant_id, cmd.duration);
-                mqtt_adapter_publish_device_command(
-                    mqtt_binding.device_type,
-                    mqtt_binding.device_id,
-                    "water",
-                    payload
-                );
+                char detail[128];
+                snprintf(detail, sizeof(detail), "duration=%d", cmd.duration);
+                mqtt_adapter_publish_bridge_command(cmd.plant_id, "water", detail);
                 dispatched_to_mqtt_device = 1;
                 ok = 1;
-                printf("watering delegated to mqtt device: type=%s id=%s\n",
+                printf("watering delegated to mqtt ros bridge: type=%s id=%s\n",
                     mqtt_binding.device_type, mqtt_binding.device_id);
             } else {
                 char detail[128];
