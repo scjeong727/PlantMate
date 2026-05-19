@@ -1,0 +1,26 @@
+로봇 세팅
+
+cd ~/ros2_ws/src/app/app
+
+python3 robot_command_node.py
+
+
+서버
+
+4개의 wsl 터미널창
+
+1번째 터미널 창 메인 C 서버 가동 
+
+ ./server
+
+2번째 터미널 창 MQTT 브로커(우체국) 가동 및 통신 로그 확인
+
+  mosquitto -c ~/my_mosquitto.conf -v
+
+3번째 터미널 창 로봇 영수증(ACK) 실시간 감시창
+
+ mosquitto_sub -h 192.168.0.4 -p 1883 -t "device/arm/robot-1/status" -v
+
+4번째 터미널 창 로봇으로 물주기 명령 쏘기 (동작 테스트용)
+
+mosquitto_pub -h 192.168.0.4 -p 1883 -t "/plantmate/robot_command" -m '{"action": "water", "plantId": 1, "detail": "Complete"}'
