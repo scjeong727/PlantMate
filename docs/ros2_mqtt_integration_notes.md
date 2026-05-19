@@ -284,7 +284,7 @@ Terminal 2:
 
 ```bash
 cd /mnt/c/Users/user/DeploymentProgram/server
-python3 fake_ros2_mqtt_client.py --device-type jetrover --device-id jetrover-1 --action move --show-topic
+python3 fake_ros2_mqtt_client.py --host 127.0.0.1 --topic /plantmate/robot_command --show-topic
 ```
 
 Terminal 3:
