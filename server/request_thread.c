@@ -6,6 +6,7 @@
 #include <sys/select.h>
 #include <signal.h>
 #include <dirent.h>
+#include <ctype.h>
 
 #include "session_manager.h"
 #include "db_queue.h"
@@ -16,6 +17,8 @@
 #include "plant_owner_cache.h"
 #include "device_lock.h"
 #include "ros2_bridge.h"
+#include "mqtt_adapter.h"
+#include "mqtt_device_registry.h"
 
 #define PORT 9000
 #define BUF_SIZE 4096
@@ -174,6 +177,51 @@ static int require_owned_plant(int client_sock, int plant_id)
         return 0;
 
     return plant_owner_cache_exists_by_user(plant_id, user_id);
+}
+
+static int is_safe_robot_action(const char* action)
+{
+    size_t i;
+
+    if (!action || action[0] == '\0')
+        return 0;
+
+    for (i = 0; action[i] != '\0'; ++i) {
+        if (!isalnum((unsigned char)action[i]) &&
+            action[i] != '_' &&
+            action[i] != '-')
+            return 0;
+    }
+
+    return 1;
+}
+
+static void copy_json_string(char* out, size_t out_size, const char* in)
+{
+    size_t pos = 0;
+    size_t i;
+
+    if (!out || out_size == 0)
+        return;
+
+    out[0] = '\0';
+    if (!in)
+        return;
+
+    for (i = 0; in[i] != '\0' && pos + 2 < out_size; ++i) {
+        if (in[i] == '"' || in[i] == '\\') {
+            if (pos + 3 >= out_size)
+                break;
+            out[pos++] = '\\';
+            out[pos++] = in[i];
+        } else if ((unsigned char)in[i] < 32) {
+            out[pos++] = ' ';
+        } else {
+            out[pos++] = in[i];
+        }
+    }
+
+    out[pos] = '\0';
 }
 
 
@@ -475,6 +523,9 @@ static void handle_robot_command(int client_sock, const char* buf)
     int plant_id;
     char action[ROS2_BRIDGE_ACTION_MAX];
     char detail[ROS2_BRIDGE_DETAIL_MAX];
+    char escaped_detail[ROS2_BRIDGE_DETAIL_MAX * 2];
+    char payload[512];
+    MqttDeviceBinding mqtt_binding;
 
     memset(action, 0, sizeof(action));
     memset(detail, 0, sizeof(detail));
@@ -484,8 +535,30 @@ static void handle_robot_command(int client_sock, const char* buf)
         return;
     }
 
+    if (!is_safe_robot_action(action)) {
+        send(client_sock, "ERROR invalid_robot_action\n", 27, 0);
+        return;
+    }
+
     if (!require_owned_plant(client_sock, plant_id)) {
         send(client_sock, "ERROR plant_not_owned\n", 22, 0);
+        return;
+    }
+
+    if (mqtt_device_registry_get(plant_id, "robot", &mqtt_binding)) {
+        copy_json_string(escaped_detail, sizeof(escaped_detail), detail);
+        snprintf(payload, sizeof(payload),
+            "{\"plantId\":%d,\"action\":\"%s\",\"detail\":\"%s\"}",
+            plant_id, action, escaped_detail);
+        mqtt_adapter_publish_device_command(
+            mqtt_binding.device_type,
+            mqtt_binding.device_id,
+            action,
+            payload
+        );
+        printf("robot command delegated to mqtt device: type=%s id=%s action=%s\n",
+            mqtt_binding.device_type, mqtt_binding.device_id, action);
+        send(client_sock, "OK {\"message\":\"robot_command_published\"}\n", 42, 0);
         return;
     }
 
@@ -712,4 +785,3 @@ void* request_thread_main(void* arg)
     close(server_sock);
     return NULL;
 }
-

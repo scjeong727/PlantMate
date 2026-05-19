@@ -63,8 +63,7 @@ def send_connect(sock, client_id):
         raise RuntimeError(f"MQTT connect failed: packet=0x{packet_type:02x} body={body!r}")
 
 
-def send_subscribe(sock, topic):
-    packet_id = 1
+def send_subscribe(sock, topic, packet_id):
     body = struct.pack("!H", packet_id) + pack_utf8(topic) + bytes([0])
     sock.sendall(bytes([0x82]) + encode_remaining_length(len(body)) + body)
 
@@ -88,17 +87,30 @@ def parse_publish(body):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Fake ROS2/Jetrover MQTT client. Subscribes to one server command topic and prints each payload as one line."
+        description="Fake ROS2/Jetrover MQTT client. Subscribes to server command topics and prints each payload as one line."
     )
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=1883)
     parser.add_argument("--device-type", default="water")
     parser.add_argument("--device-id", default="jetrover-1")
-    parser.add_argument("--action", default="water")
-    parser.add_argument("--topic", help="Override full MQTT topic")
+    parser.add_argument("--action", default="water", help="Command action, or comma-separated actions")
+    parser.add_argument("--topic", action="append", help="Override full MQTT topic. Can be passed more than once")
+    parser.add_argument("--show-topic", action="store_true", help="Print topic before each payload")
     args = parser.parse_args()
 
-    topic = args.topic or f"device/{args.device_type}/{args.device_id}/{args.action}/command"
+    if args.topic:
+        topics = args.topic
+    else:
+        actions = [action.strip() for action in args.action.split(",") if action.strip()]
+        topics = [
+            f"device/{args.device_type}/{args.device_id}/{action}/command"
+            for action in actions
+        ]
+
+    if not topics:
+        print("no topics to subscribe", file=sys.stderr)
+        return 1
+
     client_id = f"fake-ros2-{args.device_type}-{args.device_id}-{int(time.time())}"
 
     try:
@@ -117,15 +129,19 @@ def main():
     with sock:
         try:
             send_connect(sock, client_id)
-            send_subscribe(sock, topic)
+            for packet_id, topic in enumerate(topics, start=1):
+                send_subscribe(sock, topic, packet_id)
             sock.settimeout(None)
-            print(f"listening {args.host}:{args.port} topic={topic}", flush=True)
+            print(f"listening {args.host}:{args.port} topics={','.join(topics)}", flush=True)
 
             while True:
                 packet_type, body = read_packet(sock)
                 if packet_type >> 4 == 3:
-                    _topic, payload = parse_publish(body)
-                    print(payload, flush=True)
+                    topic, payload = parse_publish(body)
+                    if args.show_topic:
+                        print(f"{topic} {payload}", flush=True)
+                    else:
+                        print(payload, flush=True)
         except ConnectionError as exc:
             print(f"MQTT connection closed: {exc}", file=sys.stderr)
             return 1
