@@ -7,6 +7,8 @@
 
 # Personal config
 .codex
+.agents/
+.git-wsl/
 
 # C / Ubuntu server build files
 *.o
