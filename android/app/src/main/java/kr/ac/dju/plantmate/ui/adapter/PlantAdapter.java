@@ -1,13 +1,11 @@
 package kr.ac.dju.plantmate.ui.adapter;
 
-import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
-import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.ArrayList;
@@ -24,7 +22,6 @@ public class PlantAdapter extends RecyclerView.Adapter<PlantAdapter.PlantViewHol
 
     private final List<PlantProfile> items = new ArrayList<>();
     private final OnPlantClickListener listener;
-    private int selectedPlantId = -1;
 
     public PlantAdapter(OnPlantClickListener listener) {
         this.listener = listener;
@@ -33,11 +30,6 @@ public class PlantAdapter extends RecyclerView.Adapter<PlantAdapter.PlantViewHol
     public void submitList(List<PlantProfile> plants) {
         items.clear();
         items.addAll(plants);
-        notifyDataSetChanged();
-    }
-
-    public void setSelectedPlantId(int plantId) {
-        selectedPlantId = plantId;
         notifyDataSetChanged();
     }
 
@@ -51,9 +43,7 @@ public class PlantAdapter extends RecyclerView.Adapter<PlantAdapter.PlantViewHol
     @Override
     public void onBindViewHolder(@NonNull PlantViewHolder holder, int position) {
         PlantProfile plant = items.get(position);
-        holder.textTitle.setText(plant.getPlantId() + " - " + plant.getName());
-        holder.textSubtitle.setText(plant.getType());
-        bindSelectionStyle(holder, plant.getPlantId() == selectedPlantId);
+        holder.textName.setText(plant.getName());
         holder.itemView.setOnClickListener(v -> listener.onPlantClick(plant));
     }
 
@@ -62,28 +52,12 @@ public class PlantAdapter extends RecyclerView.Adapter<PlantAdapter.PlantViewHol
         return items.size();
     }
 
-    private void bindSelectionStyle(@NonNull PlantViewHolder holder, boolean selected) {
-        Context context = holder.itemView.getContext();
-        if (selected) {
-            holder.itemView.setBackgroundResource(R.drawable.bg_list_item_selected);
-            holder.textTitle.setTextColor(ContextCompat.getColor(context, R.color.white));
-            holder.textSubtitle.setTextColor(ContextCompat.getColor(context, R.color.surface_soft));
-            return;
-        }
-
-        holder.itemView.setBackgroundResource(R.drawable.bg_list_item);
-        holder.textTitle.setTextColor(ContextCompat.getColor(context, R.color.text_primary));
-        holder.textSubtitle.setTextColor(ContextCompat.getColor(context, R.color.text_secondary));
-    }
-
     static class PlantViewHolder extends RecyclerView.ViewHolder {
-        private final TextView textTitle;
-        private final TextView textSubtitle;
+        private final TextView textName;
 
         public PlantViewHolder(@NonNull View itemView) {
             super(itemView);
-            textTitle = itemView.findViewById(R.id.text_plant_title);
-            textSubtitle = itemView.findViewById(R.id.text_plant_subtitle);
+            textName = itemView.findViewById(R.id.text_plant_name);
         }
     }
 }

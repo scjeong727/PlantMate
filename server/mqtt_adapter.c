@@ -667,6 +667,10 @@ static void handle_rpc_publish(MqttClient* client, MYSQL* conn, const char* payl
     double temp_max = 0.0;
     double humi_min = 0.0;
     double humi_max = 0.0;
+    double position_x = 0.0;
+    double position_y = 0.0;
+    int has_position_x = 0;
+    int has_position_y = 0;
     int soil_min = 0;
     int soil_max = 0;
     int light_min = 0;
@@ -762,8 +766,13 @@ static void handle_rpc_publish(MqttClient* client, MYSQL* conn, const char* payl
             return;
         }
 
+        has_position_x = json_extract_double(payload, "positionX", &position_x);
+        has_position_y = json_extract_double(payload, "positionY", &position_y);
+
         if (strcmp(action, "addPlant") == 0) {
             if (!plant_service_add(conn, user_id, name, type,
+                    has_position_x, position_x,
+                    has_position_y, position_y,
                     temp_min, temp_max, humi_min, humi_max,
                     soil_min, soil_max, light_min, light_max)) {
                 mqtt_publish_rpc_error(client, request_id, "add_plant_failed");
@@ -795,6 +804,8 @@ static void handle_rpc_publish(MqttClient* client, MYSQL* conn, const char* payl
         }
 
         if (!plant_service_edit(conn, plant_id, user_id, name, type,
+                has_position_x, position_x,
+                has_position_y, position_y,
                 temp_min, temp_max, humi_min, humi_max,
                 soil_min, soil_max, light_min, light_max)) {
             mqtt_publish_rpc_error(client, request_id, "edit_plant_failed");
@@ -879,6 +890,8 @@ static void handle_rpc_publish(MqttClient* client, MYSQL* conn, const char* payl
     if (strcmp(action, "robotCommand") == 0) {
         char robot_action[ROS2_BRIDGE_ACTION_MAX];
         char detail[ROS2_BRIDGE_DETAIL_MAX];
+        char escaped_detail[ROS2_BRIDGE_DETAIL_MAX * 2];
+        char command_payload[512];
         MqttDeviceBinding binding;
 
         memset(detail, 0, sizeof(detail));
@@ -895,7 +908,11 @@ static void handle_rpc_publish(MqttClient* client, MYSQL* conn, const char* payl
         }
 
         if (mqtt_device_registry_get(plant_id, "robot", &binding)) {
-            mqtt_adapter_publish_bridge_command(plant_id, robot_action, detail);
+            mqtt_copy_json_string(escaped_detail, sizeof(escaped_detail), detail);
+            snprintf(command_payload, sizeof(command_payload),
+                "{\"plantId\":%d,\"action\":\"%s\",\"detail\":\"%s\"}",
+                plant_id, robot_action, escaped_detail);
+            mqtt_adapter_publish_device_command(binding.device_type, binding.device_id, robot_action, command_payload);
             mqtt_publish_rpc_ok_raw(client, request_id, "{\"message\":\"robot_command_published\"}");
             return;
         }

@@ -286,6 +286,32 @@ public class MqttPlantGateway implements PlantGateway {
     }
 
     @Override
+    public List<String> loadRobotDevices() throws Exception {
+        JSONObject response = sendRequest("getDeviceList", request -> request.put("deviceType", "robot"));
+        return responseParser.parseDeviceList("OK " + requireData(response).toString());
+    }
+
+    @Override
+    public void setRobotDevice(String deviceId, int plantId) throws Exception {
+        requireConnected();
+        if (deviceId == null || deviceId.trim().isEmpty()) {
+            throw new IllegalArgumentException("로봇 장치를 선택하세요.");
+        }
+        if (plantId <= 0) {
+            throw new IllegalArgumentException("식물을 선택하세요.");
+        }
+
+        sendRequest("bindDevice", request -> {
+            request.put("plantId", plantId);
+            request.put("role", "robot");
+            request.put("deviceType", "robot");
+            request.put("deviceId", deviceId.trim());
+        });
+        selectPlant(plantId);
+        appendEvent("MQTT 로봇 장치 바인딩 완료: " + deviceId.trim());
+    }
+
+    @Override
     public void robotCommand(int plantId, String action, String detail) throws Exception {
         requireConnected();
         if (plantId <= 0) {
@@ -458,6 +484,8 @@ public class MqttPlantGateway implements PlantGateway {
             request.put("plantId", plant.getPlantId());
             request.put("name", plant.getName());
             request.put("type", plant.getType());
+            request.put("positionX", plant.getPositionX() == null ? JSONObject.NULL : plant.getPositionX());
+            request.put("positionY", plant.getPositionY() == null ? JSONObject.NULL : plant.getPositionY());
             request.put("tempMin", plant.getTempMin());
             request.put("tempMax", plant.getTempMax());
             request.put("humiMin", plant.getHumiMin());

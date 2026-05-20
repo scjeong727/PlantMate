@@ -6,6 +6,8 @@
 #include "command_queue.h"
 
 int plant_service_add(MYSQL* conn, int user_id, const char* name, const char* type,
+    int has_position_x, double position_x,
+    int has_position_y, double position_y,
     double temp_min, double temp_max,
     double humi_min, double humi_max,
     int soil_min, int soil_max,
@@ -16,6 +18,8 @@ int plant_service_get_by_user(MYSQL* conn, int user_id, char* out, size_t out_si
 int plant_service_remove(MYSQL* conn, int plant_id, int user_id);
 
 int plant_service_edit(MYSQL* conn, int plant_id, int user_id, const char* name, const char* type,
+    int has_position_x, double position_x,
+    int has_position_y, double position_y,
     double temp_min, double temp_max,
     double humi_min, double humi_max,
     int soil_min, int soil_max,

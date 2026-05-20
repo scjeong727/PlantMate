@@ -264,6 +264,8 @@ static int rewrite_plant_command_with_session_user(int client_sock, const char* 
     int plant_id;
     char name[64];
     char type[64];
+    char position_x[32];
+    char position_y[32];
 
     double temp_min, temp_max;
     double humi_min, humi_max;
@@ -281,16 +283,16 @@ static int rewrite_plant_command_with_session_user(int client_sock, const char* 
 
     if (strncmp(in, "ADD_PLANT ", 10) == 0) {
         if (sscanf(in,
-            "ADD_PLANT %d %63s %63s %lf %lf %lf %lf %d %d %d %d",
-            &ignored_user_id, name, type,
+            "ADD_PLANT %d %63s %63s %31s %31s %lf %lf %lf %lf %d %d %d %d",
+            &ignored_user_id, name, type, position_x, position_y,
             &temp_min, &temp_max,
             &humi_min, &humi_max,
             &soil_min, &soil_max,
-            &light_min, &light_max) == 11)
+            &light_min, &light_max) == 13)
         {
             snprintf(out, out_size,
-                "ADD_PLANT %d %s %s %.2f %.2f %.2f %.2f %d %d %d %d",
-                user_id, name, type,
+                "ADD_PLANT %d %s %s %s %s %.2f %.2f %.2f %.2f %d %d %d %d",
+                user_id, name, type, position_x, position_y,
                 temp_min, temp_max,
                 humi_min, humi_max,
                 soil_min, soil_max,
@@ -299,16 +301,16 @@ static int rewrite_plant_command_with_session_user(int client_sock, const char* 
         }
 
         if (sscanf(in,
-            "ADD_PLANT %63s %63s %lf %lf %lf %lf %d %d %d %d",
-            name, type,
+            "ADD_PLANT %63s %63s %31s %31s %lf %lf %lf %lf %d %d %d %d",
+            name, type, position_x, position_y,
             &temp_min, &temp_max,
             &humi_min, &humi_max,
             &soil_min, &soil_max,
-            &light_min, &light_max) == 10)
+            &light_min, &light_max) == 12)
         {
             snprintf(out, out_size,
-                "ADD_PLANT %d %s %s %.2f %.2f %.2f %.2f %d %d %d %d",
-                user_id, name, type,
+                "ADD_PLANT %d %s %s %s %s %.2f %.2f %.2f %.2f %d %d %d %d",
+                user_id, name, type, position_x, position_y,
                 temp_min, temp_max,
                 humi_min, humi_max,
                 soil_min, soil_max,
@@ -317,7 +319,7 @@ static int rewrite_plant_command_with_session_user(int client_sock, const char* 
         }
 
         snprintf(out, out_size,
-            "ERROR usage: ADD_PLANT name type temp_min temp_max humi_min humi_max soil_min soil_max light_min light_max\n");
+            "ERROR usage: ADD_PLANT name type position_x position_y temp_min temp_max humi_min humi_max soil_min soil_max light_min light_max\n");
         return -1;
     }
 
@@ -338,16 +340,16 @@ static int rewrite_plant_command_with_session_user(int client_sock, const char* 
 
     if (strncmp(in, "EDIT_PLANT ", 11) == 0) {
         if (sscanf(in,
-            "EDIT_PLANT %d %d %63s %63s %lf %lf %lf %lf %d %d %d %d",
-            &plant_id, &ignored_user_id, name, type,
+            "EDIT_PLANT %d %d %63s %63s %31s %31s %lf %lf %lf %lf %d %d %d %d",
+            &plant_id, &ignored_user_id, name, type, position_x, position_y,
             &temp_min, &temp_max,
             &humi_min, &humi_max,
             &soil_min, &soil_max,
-            &light_min, &light_max) == 12)
+            &light_min, &light_max) == 14)
         {
             snprintf(out, out_size,
-                "EDIT_PLANT %d %d %s %s %.2f %.2f %.2f %.2f %d %d %d %d",
-                plant_id, user_id, name, type,
+                "EDIT_PLANT %d %d %s %s %s %s %.2f %.2f %.2f %.2f %d %d %d %d",
+                plant_id, user_id, name, type, position_x, position_y,
                 temp_min, temp_max,
                 humi_min, humi_max,
                 soil_min, soil_max,
@@ -356,16 +358,16 @@ static int rewrite_plant_command_with_session_user(int client_sock, const char* 
         }
 
         if (sscanf(in,
-            "EDIT_PLANT %d %63s %63s %lf %lf %lf %lf %d %d %d %d",
-            &plant_id, name, type,
+            "EDIT_PLANT %d %63s %63s %31s %31s %lf %lf %lf %lf %d %d %d %d",
+            &plant_id, name, type, position_x, position_y,
             &temp_min, &temp_max,
             &humi_min, &humi_max,
             &soil_min, &soil_max,
-            &light_min, &light_max) == 11)
+            &light_min, &light_max) == 13)
         {
             snprintf(out, out_size,
-                "EDIT_PLANT %d %d %s %s %.2f %.2f %.2f %.2f %d %d %d %d",
-                plant_id, user_id, name, type,
+                "EDIT_PLANT %d %d %s %s %s %s %.2f %.2f %.2f %.2f %d %d %d %d",
+                plant_id, user_id, name, type, position_x, position_y,
                 temp_min, temp_max,
                 humi_min, humi_max,
                 soil_min, soil_max,
@@ -374,7 +376,7 @@ static int rewrite_plant_command_with_session_user(int client_sock, const char* 
         }
 
         snprintf(out, out_size,
-            "ERROR usage: EDIT_PLANT plant_id name type temp_min temp_max humi_min humi_max soil_min soil_max light_min light_max\n");
+            "ERROR usage: EDIT_PLANT plant_id name type position_x position_y temp_min temp_max humi_min humi_max soil_min soil_max light_min light_max\n");
         return -1;
     }
 

@@ -28,150 +28,125 @@
             android:textSize="26sp"
             android:textStyle="bold" />
 
-        <TextView
+        <LinearLayout
+            android:id="@+id/auth_panel"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:gravity="center"
-            android:text="로그인 화면입니다. 로그인하세요!"
-            android:textColor="@color/text_secondary"
-            android:textSize="13sp" />
+            android:orientation="vertical">
 
-        <RadioGroup
-            android:id="@+id/protocol_group"
+            <EditText
+                android:id="@+id/edit_login_id"
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:layout_marginTop="24dp"
+                android:background="@drawable/bg_input"
+                android:gravity="center_vertical"
+                android:hint="아이디"
+                android:inputType="text"
+                android:paddingHorizontal="16dp"
+                android:textColor="@color/text_primary"
+                android:textColorHint="@color/text_hint" />
+
+            <EditText
+                android:id="@+id/edit_login_pw"
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:layout_marginTop="12dp"
+                android:background="@drawable/bg_input"
+                android:gravity="center_vertical"
+                android:hint="비밀번호"
+                android:inputType="textPassword"
+                android:paddingHorizontal="16dp"
+                android:textColor="@color/text_primary"
+                android:textColorHint="@color/text_hint" />
+
+            <Button
+                android:id="@+id/btn_login"
+                android:layout_width="match_parent"
+                android:layout_height="54dp"
+                android:layout_marginTop="28dp"
+                android:background="@drawable/bg_primary_button"
+                android:text="로그인"
+                android:textAllCaps="false"
+                android:textColor="@color/white"
+                android:textStyle="bold" />
+
+            <Button
+                android:id="@+id/btn_signup"
+                android:layout_width="match_parent"
+                android:layout_height="54dp"
+                android:layout_marginTop="12dp"
+                android:background="@drawable/bg_secondary_button"
+                android:text="회원가입"
+                android:textAllCaps="false"
+                android:textColor="@color/white"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/server_panel"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
-            android:orientation="horizontal">
+            android:orientation="vertical"
+            android:visibility="gone">
 
-            <RadioButton
-                android:id="@+id/radio_protocol_tcp"
-                android:layout_width="0dp"
+            <TextView
+                android:id="@+id/text_server_title"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:checked="true"
-                android:text="TCP/IP"
-                android:textColor="@color/text_primary" />
+                android:layout_marginTop="20dp"
+                android:gravity="center"
+                android:text="서버 설정"
+                android:textColor="@color/text_secondary"
+                android:textStyle="bold" />
 
-            <RadioButton
-                android:id="@+id/radio_protocol_mqtt"
-                android:layout_width="0dp"
+            <EditText
+                android:id="@+id/edit_host"
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:layout_marginTop="16dp"
+                android:background="@drawable/bg_input"
+                android:gravity="center_vertical"
+                android:hint="서버 IP"
+                android:inputType="text"
+                android:paddingHorizontal="16dp"
+                android:textColor="@color/text_primary"
+                android:textColorHint="@color/text_hint" />
+
+            <Button
+                android:id="@+id/btn_server_proceed"
+                android:layout_width="match_parent"
+                android:layout_height="54dp"
+                android:layout_marginTop="18dp"
+                android:background="@drawable/bg_primary_button"
+                android:text="계속"
+                android:textAllCaps="false"
+                android:textColor="@color/white"
+                android:textStyle="bold" />
+
+            <Button
+                android:id="@+id/btn_server_back"
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:layout_marginTop="10dp"
+                android:background="@drawable/bg_secondary_button"
+                android:text="뒤로"
+                android:textAllCaps="false"
+                android:textColor="@color/white"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/text_server_status"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="MQTT"
-                android:textColor="@color/text_primary" />
-        </RadioGroup>
-
-        <EditText
-            android:id="@+id/edit_host"
-            android:layout_width="match_parent"
-            android:layout_height="52dp"
-            android:layout_marginTop="16dp"
-            android:background="@drawable/bg_input"
-            android:gravity="center_vertical"
-            android:hint="서버 IP"
-            android:inputType="text"
-            android:paddingHorizontal="16dp"
-            android:textColor="@color/text_primary"
-            android:textColorHint="@color/text_hint" />
-
-        <EditText
-            android:id="@+id/edit_port"
-            android:layout_width="match_parent"
-            android:layout_height="52dp"
-            android:layout_marginTop="12dp"
-            android:background="@drawable/bg_input"
-            android:gravity="center_vertical"
-            android:hint="포트"
-            android:inputType="number"
-            android:paddingHorizontal="16dp"
-            android:text="9000"
-            android:textColor="@color/text_primary"
-            android:textColorHint="@color/text_hint" />
-
-        <EditText
-            android:id="@+id/edit_client_id"
-            android:layout_width="match_parent"
-            android:layout_height="52dp"
-            android:layout_marginTop="12dp"
-            android:background="@drawable/bg_input"
-            android:gravity="center_vertical"
-            android:hint="MQTT Client ID"
-            android:inputType="text"
-            android:paddingHorizontal="16dp"
-            android:textColor="@color/text_primary"
-            android:textColorHint="@color/text_hint" />
-
-        <Button
-            android:id="@+id/btn_connect"
-            android:layout_width="match_parent"
-            android:layout_height="52dp"
-            android:layout_marginTop="16dp"
-            android:background="@drawable/bg_primary_button"
-            android:text="서버 연결"
-            android:textAllCaps="false"
-            android:textColor="@color/white"
-            android:textStyle="bold" />
-
-        <EditText
-            android:id="@+id/edit_login_id"
-            android:layout_width="match_parent"
-            android:layout_height="52dp"
-            android:layout_marginTop="24dp"
-            android:background="@drawable/bg_input"
-            android:gravity="center_vertical"
-            android:hint="아이디 입력"
-            android:inputType="text"
-            android:paddingHorizontal="16dp"
-            android:textColor="@color/text_primary"
-            android:textColorHint="@color/text_hint" />
-
-        <EditText
-            android:id="@+id/edit_login_pw"
-            android:layout_width="match_parent"
-            android:layout_height="52dp"
-            android:layout_marginTop="12dp"
-            android:background="@drawable/bg_input"
-            android:gravity="center_vertical"
-            android:hint="비밀번호 입력"
-            android:inputType="textPassword"
-            android:paddingHorizontal="16dp"
-            android:textColor="@color/text_primary"
-            android:textColorHint="@color/text_hint" />
-
-        <Button
-            android:id="@+id/btn_login"
-            android:layout_width="match_parent"
-            android:layout_height="54dp"
-            android:layout_marginTop="28dp"
-            android:background="@drawable/bg_primary_button"
-            android:text="로그인"
-            android:textAllCaps="false"
-            android:textColor="@color/white"
-            android:textStyle="bold" />
-
-        <Button
-            android:id="@+id/btn_signup"
-            android:layout_width="match_parent"
-            android:layout_height="54dp"
-            android:layout_marginTop="12dp"
-            android:background="@drawable/bg_secondary_button"
-            android:text="회원가입"
-            android:textAllCaps="false"
-            android:textColor="@color/white"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/text_server_status"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
-            android:background="@drawable/bg_status_box"
-            android:gravity="center"
-            android:paddingVertical="14dp"
-            android:text="서버 상태: 연결 안 됨"
-            android:textColor="@color/text_primary"
-            android:textStyle="bold" />
+                android:layout_marginTop="18dp"
+                android:background="@drawable/bg_status_box"
+                android:gravity="center"
+                android:paddingVertical="14dp"
+                android:text="서버 상태: 연결 안 됨"
+                android:textColor="@color/text_primary"
+                android:textStyle="bold" />
+        </LinearLayout>
     </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

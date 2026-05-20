@@ -72,6 +72,12 @@ def send_subscribe(sock, topic, packet_id):
         raise RuntimeError(f"MQTT subscribe failed: packet=0x{packet_type:02x} body={body!r}")
 
 
+def send_publish(sock, topic, payload):
+    encoded_payload = payload.encode("utf-8")
+    body = pack_utf8(topic) + encoded_payload
+    sock.sendall(bytes([0x30]) + encode_remaining_length(len(body)) + body)
+
+
 def parse_publish(body):
     if len(body) < 2:
         raise ValueError("invalid publish packet")
@@ -129,6 +135,11 @@ def main():
     with sock:
         try:
             send_connect(sock, client_id)
+            send_publish(
+                sock,
+                f"device/{args.device_type}/{args.device_id}/status",
+                '{"eventType":"DEVICE_ONLINE","message":"online"}',
+            )
             for packet_id, topic in enumerate(topics, start=1):
                 send_subscribe(sock, topic, packet_id)
             sock.settimeout(None)

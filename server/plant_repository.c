@@ -16,6 +16,8 @@ int plant_repository_add(
     int user_id,
     const char* name,
     const char* type,
+    int has_position_x, double position_x,
+    int has_position_y, double position_y,
     double temp_min, double temp_max,
     double humi_min, double humi_max,
     int soil_min, int soil_max,
@@ -26,15 +28,17 @@ int plant_repository_add(
 
     const char* sql =
         "INSERT INTO plants "
-        "(user_id, name, type, temp_min, temp_max, humi_min, humi_max, soil_min, soil_max, light_min, light_max) "
-        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        "(user_id, name, type, position_x, position_y, temp_min, temp_max, humi_min, humi_max, soil_min, soil_max, light_min, light_max) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
     if (mysql_stmt_prepare(stmt, sql, (unsigned long)strlen(sql)) != 0) {
         mysql_stmt_close(stmt);
         return 0;
     }
 
-    MYSQL_BIND bind[11];
+    MYSQL_BIND bind[13];
+    bool position_x_is_null = !has_position_x;
+    bool position_y_is_null = !has_position_y;
     memset(bind, 0, sizeof(bind));
 
     unsigned long name_len = (unsigned long)strlen(name);
@@ -54,28 +58,36 @@ int plant_repository_add(
     bind[2].length = &type_len;
 
     bind[3].buffer_type = MYSQL_TYPE_DOUBLE;
-    bind[3].buffer = (char*)&temp_min;
+    bind[3].buffer = (char*)&position_x;
+    bind[3].is_null = &position_x_is_null;
 
     bind[4].buffer_type = MYSQL_TYPE_DOUBLE;
-    bind[4].buffer = (char*)&temp_max;
+    bind[4].buffer = (char*)&position_y;
+    bind[4].is_null = &position_y_is_null;
 
     bind[5].buffer_type = MYSQL_TYPE_DOUBLE;
-    bind[5].buffer = (char*)&humi_min;
+    bind[5].buffer = (char*)&temp_min;
 
     bind[6].buffer_type = MYSQL_TYPE_DOUBLE;
-    bind[6].buffer = (char*)&humi_max;
+    bind[6].buffer = (char*)&temp_max;
 
-    bind[7].buffer_type = MYSQL_TYPE_LONG;
-    bind[7].buffer = (char*)&soil_min;
+    bind[7].buffer_type = MYSQL_TYPE_DOUBLE;
+    bind[7].buffer = (char*)&humi_min;
 
-    bind[8].buffer_type = MYSQL_TYPE_LONG;
-    bind[8].buffer = (char*)&soil_max;
+    bind[8].buffer_type = MYSQL_TYPE_DOUBLE;
+    bind[8].buffer = (char*)&humi_max;
 
     bind[9].buffer_type = MYSQL_TYPE_LONG;
-    bind[9].buffer = (char*)&light_min;
+    bind[9].buffer = (char*)&soil_min;
 
     bind[10].buffer_type = MYSQL_TYPE_LONG;
-    bind[10].buffer = (char*)&light_max;
+    bind[10].buffer = (char*)&soil_max;
+
+    bind[11].buffer_type = MYSQL_TYPE_LONG;
+    bind[11].buffer = (char*)&light_min;
+
+    bind[12].buffer_type = MYSQL_TYPE_LONG;
+    bind[12].buffer = (char*)&light_max;
 
     if (mysql_stmt_bind_param(stmt, bind) != 0) {
         mysql_stmt_close(stmt);
@@ -380,6 +392,8 @@ int plant_repository_edit(
     int user_id,
     const char* name,
     const char* type,
+    int has_position_x, double position_x,
+    int has_position_y, double position_y,
     double temp_min, double temp_max,
     double humi_min, double humi_max,
     int soil_min, int soil_max,
@@ -390,7 +404,7 @@ int plant_repository_edit(
 
     const char* sql =
         "UPDATE plants "
-        "SET name = ?, type = ?, "
+        "SET name = ?, type = ?, position_x = ?, position_y = ?, "
         "temp_min = ?, temp_max = ?, "
         "humi_min = ?, humi_max = ?, "
         "soil_min = ?, soil_max = ?, "
@@ -402,7 +416,9 @@ int plant_repository_edit(
         return 0;
     }
 
-    MYSQL_BIND bind[12];
+    MYSQL_BIND bind[14];
+    bool position_x_is_null = !has_position_x;
+    bool position_y_is_null = !has_position_y;
     memset(bind, 0, sizeof(bind));
 
     unsigned long name_len = (unsigned long)strlen(name);
@@ -419,34 +435,42 @@ int plant_repository_edit(
     bind[1].length = &type_len;
 
     bind[2].buffer_type = MYSQL_TYPE_DOUBLE;
-    bind[2].buffer = (char*)&temp_min;
+    bind[2].buffer = (char*)&position_x;
+    bind[2].is_null = &position_x_is_null;
 
     bind[3].buffer_type = MYSQL_TYPE_DOUBLE;
-    bind[3].buffer = (char*)&temp_max;
+    bind[3].buffer = (char*)&position_y;
+    bind[3].is_null = &position_y_is_null;
 
     bind[4].buffer_type = MYSQL_TYPE_DOUBLE;
-    bind[4].buffer = (char*)&humi_min;
+    bind[4].buffer = (char*)&temp_min;
 
     bind[5].buffer_type = MYSQL_TYPE_DOUBLE;
-    bind[5].buffer = (char*)&humi_max;
+    bind[5].buffer = (char*)&temp_max;
 
-    bind[6].buffer_type = MYSQL_TYPE_LONG;
-    bind[6].buffer = (char*)&soil_min;
+    bind[6].buffer_type = MYSQL_TYPE_DOUBLE;
+    bind[6].buffer = (char*)&humi_min;
 
-    bind[7].buffer_type = MYSQL_TYPE_LONG;
-    bind[7].buffer = (char*)&soil_max;
+    bind[7].buffer_type = MYSQL_TYPE_DOUBLE;
+    bind[7].buffer = (char*)&humi_max;
 
     bind[8].buffer_type = MYSQL_TYPE_LONG;
-    bind[8].buffer = (char*)&light_min;
+    bind[8].buffer = (char*)&soil_min;
 
     bind[9].buffer_type = MYSQL_TYPE_LONG;
-    bind[9].buffer = (char*)&light_max;
+    bind[9].buffer = (char*)&soil_max;
 
     bind[10].buffer_type = MYSQL_TYPE_LONG;
-    bind[10].buffer = (char*)&plant_id;
+    bind[10].buffer = (char*)&light_min;
 
     bind[11].buffer_type = MYSQL_TYPE_LONG;
-    bind[11].buffer = (char*)&user_id;
+    bind[11].buffer = (char*)&light_max;
+
+    bind[12].buffer_type = MYSQL_TYPE_LONG;
+    bind[12].buffer = (char*)&plant_id;
+
+    bind[13].buffer_type = MYSQL_TYPE_LONG;
+    bind[13].buffer = (char*)&user_id;
 
     if (mysql_stmt_bind_param(stmt, bind) != 0) {
         mysql_stmt_close(stmt);
