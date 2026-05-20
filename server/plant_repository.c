@@ -1,4 +1,5 @@
 #include "plant_repository.h"
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -92,6 +93,7 @@ int plant_repository_get_all(MYSQL* conn, char* out, size_t out_size)
 {
     const char* sql =
         "SELECT plant_id, user_id, name, type, "
+        "position_x, position_y, "
         "temp_min, temp_max, humi_min, humi_max, soil_min, soil_max, light_min, light_max, "
         "created_at "
         "FROM plants ORDER BY plant_id ASC";
@@ -112,6 +114,7 @@ int plant_repository_get_all(MYSQL* conn, char* out, size_t out_size)
             snprintf(
                 buf, sizeof(buf),
                 "%s{\"plant_id\":%s,\"user_id\":%s,\"name\":\"%s\",\"type\":\"%s\","
+                "\"position_x\":%s,\"position_y\":%s,"
                 "\"temp_min\":%s,\"temp_max\":%s,"
                 "\"humi_min\":%s,\"humi_max\":%s,"
                 "\"soil_min\":%s,\"soil_max\":%s,"
@@ -122,15 +125,17 @@ int plant_repository_get_all(MYSQL* conn, char* out, size_t out_size)
                 row[1] ? row[1] : "0",
                 row[2] ? row[2] : "",
                 row[3] ? row[3] : "",
-                row[4] ? row[4] : "0",
-                row[5] ? row[5] : "0",
+                row[4] ? row[4] : "null",
+                row[5] ? row[5] : "null",
                 row[6] ? row[6] : "0",
                 row[7] ? row[7] : "0",
                 row[8] ? row[8] : "0",
                 row[9] ? row[9] : "0",
                 row[10] ? row[10] : "0",
                 row[11] ? row[11] : "0",
-                row[12] ? row[12] : ""
+                row[12] ? row[12] : "0",
+                row[13] ? row[13] : "0",
+                row[14] ? row[14] : ""
             );
             append_text(out, out_size, buf);
             first = 0;
@@ -149,6 +154,7 @@ int plant_repository_get_by_user(MYSQL* conn, int user_id, char* out, size_t out
 
     const char* sql =
         "SELECT plant_id, user_id, name, type, "
+        "position_x, position_y, "
         "temp_min, temp_max, humi_min, humi_max, soil_min, soil_max, light_min, light_max, "
         "created_at "
         "FROM plants "
@@ -180,6 +186,8 @@ int plant_repository_get_by_user(MYSQL* conn, int user_id, char* out, size_t out
         int user_id_val = 0;
         char name[128] = {0};
         char type[128] = {0};
+        double position_x = 0;
+        double position_y = 0;
         double temp_min = 0;
         double temp_max = 0;
         double humi_min = 0;
@@ -193,8 +201,10 @@ int plant_repository_get_by_user(MYSQL* conn, int user_id, char* out, size_t out
         unsigned long name_len = 0;
         unsigned long type_len = 0;
         unsigned long created_len = 0;
+        bool position_x_is_null = false;
+        bool position_y_is_null = false;
 
-        MYSQL_BIND result[13];
+        MYSQL_BIND result[15];
         memset(result, 0, sizeof(result));
 
         result[0].buffer_type = MYSQL_TYPE_LONG;
@@ -214,33 +224,41 @@ int plant_repository_get_by_user(MYSQL* conn, int user_id, char* out, size_t out
         result[3].length = &type_len;
 
         result[4].buffer_type = MYSQL_TYPE_DOUBLE;
-        result[4].buffer = (char*)&temp_min;
+        result[4].buffer = (char*)&position_x;
+        result[4].is_null = &position_x_is_null;
 
         result[5].buffer_type = MYSQL_TYPE_DOUBLE;
-        result[5].buffer = (char*)&temp_max;
+        result[5].buffer = (char*)&position_y;
+        result[5].is_null = &position_y_is_null;
 
         result[6].buffer_type = MYSQL_TYPE_DOUBLE;
-        result[6].buffer = (char*)&humi_min;
+        result[6].buffer = (char*)&temp_min;
 
         result[7].buffer_type = MYSQL_TYPE_DOUBLE;
-        result[7].buffer = (char*)&humi_max;
+        result[7].buffer = (char*)&temp_max;
 
-        result[8].buffer_type = MYSQL_TYPE_LONG;
-        result[8].buffer = (char*)&soil_min;
+        result[8].buffer_type = MYSQL_TYPE_DOUBLE;
+        result[8].buffer = (char*)&humi_min;
 
-        result[9].buffer_type = MYSQL_TYPE_LONG;
-        result[9].buffer = (char*)&soil_max;
+        result[9].buffer_type = MYSQL_TYPE_DOUBLE;
+        result[9].buffer = (char*)&humi_max;
 
         result[10].buffer_type = MYSQL_TYPE_LONG;
-        result[10].buffer = (char*)&light_min;
+        result[10].buffer = (char*)&soil_min;
 
         result[11].buffer_type = MYSQL_TYPE_LONG;
-        result[11].buffer = (char*)&light_max;
+        result[11].buffer = (char*)&soil_max;
 
-        result[12].buffer_type = MYSQL_TYPE_STRING;
-        result[12].buffer = created_at;
-        result[12].buffer_length = sizeof(created_at);
-        result[12].length = &created_len;
+        result[12].buffer_type = MYSQL_TYPE_LONG;
+        result[12].buffer = (char*)&light_min;
+
+        result[13].buffer_type = MYSQL_TYPE_LONG;
+        result[13].buffer = (char*)&light_max;
+
+        result[14].buffer_type = MYSQL_TYPE_STRING;
+        result[14].buffer = created_at;
+        result[14].buffer_length = sizeof(created_at);
+        result[14].length = &created_len;
 
         if (mysql_stmt_bind_result(stmt, result) != 0) {
             mysql_stmt_close(stmt);
@@ -270,10 +288,24 @@ int plant_repository_get_by_user(MYSQL* conn, int user_id, char* out, size_t out
                 created_at[created_len < sizeof(created_at) ? created_len : sizeof(created_at) - 1] = '\0';
 
                 {
+                    char position_x_text[32];
+                    char position_y_text[32];
                     char buf[1024];
+
+                    if (position_x_is_null)
+                        snprintf(position_x_text, sizeof(position_x_text), "null");
+                    else
+                        snprintf(position_x_text, sizeof(position_x_text), "%.2f", position_x);
+
+                    if (position_y_is_null)
+                        snprintf(position_y_text, sizeof(position_y_text), "null");
+                    else
+                        snprintf(position_y_text, sizeof(position_y_text), "%.2f", position_y);
+
                     snprintf(
                         buf, sizeof(buf),
                         "%s{\"plant_id\":%d,\"user_id\":%d,\"name\":\"%s\",\"type\":\"%s\","
+                        "\"position_x\":%s,\"position_y\":%s,"
                         "\"temp_min\":%.2f,\"temp_max\":%.2f,"
                         "\"humi_min\":%.2f,\"humi_max\":%.2f,"
                         "\"soil_min\":%d,\"soil_max\":%d,"
@@ -284,6 +316,8 @@ int plant_repository_get_by_user(MYSQL* conn, int user_id, char* out, size_t out
                         user_id_val,
                         name,
                         type,
+                        position_x_text,
+                        position_y_text,
                         temp_min, temp_max,
                         humi_min, humi_max,
                         soil_min, soil_max,

@@ -1,5 +1,84 @@
 #include "db.h"
 #include <stdio.h>
+#include <stdlib.h>
+
+static int db_table_exists(MYSQL* conn, const char* table_name)
+{
+    char query[256];
+    MYSQL_RES* res;
+    MYSQL_ROW row;
+    int exists = 0;
+
+    snprintf(
+        query, sizeof(query),
+        "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES "
+        "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = '%s'",
+        table_name);
+
+    if (mysql_query(conn, query) != 0)
+        return 0;
+
+    res = mysql_store_result(conn);
+    if (!res)
+        return 0;
+
+    row = mysql_fetch_row(res);
+    if (row && row[0])
+        exists = atoi(row[0]) > 0;
+
+    mysql_free_result(res);
+    return exists;
+}
+
+static int db_column_exists(MYSQL* conn, const char* table_name, const char* column_name)
+{
+    char query[320];
+    MYSQL_RES* res;
+    MYSQL_ROW row;
+    int exists = 0;
+
+    snprintf(
+        query, sizeof(query),
+        "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS "
+        "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = '%s' AND COLUMN_NAME = '%s'",
+        table_name, column_name);
+
+    if (mysql_query(conn, query) != 0)
+        return 0;
+
+    res = mysql_store_result(conn);
+    if (!res)
+        return 0;
+
+    row = mysql_fetch_row(res);
+    if (row && row[0])
+        exists = atoi(row[0]) > 0;
+
+    mysql_free_result(res);
+    return exists;
+}
+
+static int db_ensure_plant_position_columns(MYSQL* conn)
+{
+    if (!db_table_exists(conn, "plants"))
+        return 1;
+
+    if (!db_column_exists(conn, "plants", "position_x")) {
+        if (mysql_query(conn, "ALTER TABLE plants ADD COLUMN position_x FLOAT NULL AFTER type") != 0) {
+            fprintf(stderr, "db_ensure_schema: %s\n", mysql_error(conn));
+            return 0;
+        }
+    }
+
+    if (!db_column_exists(conn, "plants", "position_y")) {
+        if (mysql_query(conn, "ALTER TABLE plants ADD COLUMN position_y FLOAT NULL AFTER position_x") != 0) {
+            fprintf(stderr, "db_ensure_schema: %s\n", mysql_error(conn));
+            return 0;
+        }
+    }
+
+    return 1;
+}
 
 int db_ensure_schema(MYSQL* conn)
 {
@@ -36,6 +115,9 @@ int db_ensure_schema(MYSQL* conn)
             return 0;
         }
     }
+
+    if (!db_ensure_plant_position_columns(conn))
+        return 0;
 
     return 1;
 }
