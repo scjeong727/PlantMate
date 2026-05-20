@@ -16,12 +16,31 @@
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
 --
--- Current Database: `plant_db`
+-- Table structure for table `PlantTable`
 --
 
-CREATE DATABASE /*!32312 IF NOT EXISTS*/ `plant_db` /*!40100 DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci */ /*!80016 DEFAULT ENCRYPTION='N' */;
+DROP TABLE IF EXISTS `PlantTable`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `PlantTable` (
+  `plant_id` int NOT NULL AUTO_INCREMENT,
+  `plant_name` varchar(50) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `position_x` float DEFAULT NULL,
+  `position_y` float DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`plant_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
-USE `plant_db`;
+--
+-- Dumping data for table `PlantTable`
+--
+
+LOCK TABLES `PlantTable` WRITE;
+/*!40000 ALTER TABLE `PlantTable` DISABLE KEYS */;
+INSERT INTO `PlantTable` VALUES (2,'스투키',2.5,1.1,'2026-05-19 01:30:05'),(3,'산세베리아',4,2.3,'2026-05-19 01:30:05'),(8,'화이트스타',3,4,'2026-05-19 07:06:20'),(9,'금사철',7.5,7,'2026-05-19 07:09:58'),(10,'무늬산호수',4,7,'2026-05-19 07:13:56');
+/*!40000 ALTER TABLE `PlantTable` ENABLE KEYS */;
+UNLOCK TABLES;
 
 --
 -- Table structure for table `events`
@@ -121,6 +140,8 @@ CREATE TABLE `plants` (
   `user_id` int NOT NULL DEFAULT '1',
   `name` varchar(100) NOT NULL,
   `type` varchar(100) NOT NULL DEFAULT 'unknown',
+  `position_x` float DEFAULT NULL,
+  `position_y` float DEFAULT NULL,
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `temp_min` double NOT NULL DEFAULT '0',
   `temp_max` double NOT NULL DEFAULT '100',
@@ -142,7 +163,7 @@ CREATE TABLE `plants` (
 
 LOCK TABLES `plants` WRITE;
 /*!40000 ALTER TABLE `plants` DISABLE KEYS */;
-INSERT INTO `plants` VALUES (5,5,'1','1','2026-03-15 06:44:43',5,60,0,100,0,100,0,1000),(6,6,'2','2','2026-03-15 06:46:41',0,100,0,100,0,100,0,1000),(8,5,'55','55','2026-03-15 06:56:44',0,100,0,100,0,100,0,1000),(9,5,'44','44','2026-03-15 06:56:57',0,100,0,100,0,100,0,1000);
+INSERT INTO `plants` VALUES (2,1,'스투키','unknown',2.5,1.1,'2026-05-19 10:30:05',0,100,0,100,0,100,0,1000),(3,1,'산세베리아','unknown',4,2.3,'2026-05-19 10:30:05',0,100,0,100,0,100,0,1000),(5,5,'1','1',NULL,NULL,'2026-03-15 06:44:43',5,60,0,100,0,100,0,1000),(6,6,'2','2',NULL,NULL,'2026-03-15 06:46:41',0,100,0,100,0,100,0,1000),(8,5,'화이트스타','55',3,4,'2026-03-15 06:56:44',0,100,0,100,0,100,0,1000),(9,5,'금사철','44',7.5,7,'2026-03-15 06:56:57',0,100,0,100,0,100,0,1000),(10,1,'무늬산호수','unknown',4,7,'2026-05-19 16:13:56',0,100,0,100,0,100,0,1000);
 /*!40000 ALTER TABLE `plants` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -229,14 +250,6 @@ LOCK TABLES `watering_log` WRITE;
 /*!40000 ALTER TABLE `watering_log` DISABLE KEYS */;
 /*!40000 ALTER TABLE `watering_log` ENABLE KEYS */;
 UNLOCK TABLES;
-
---
--- Dumping events for database 'plant_db'
---
-
---
--- Dumping routines for database 'plant_db'
---
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
@@ -247,4 +260,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-05-19 15:42:26
+-- Dump completed on 2026-05-20  9:28:07
