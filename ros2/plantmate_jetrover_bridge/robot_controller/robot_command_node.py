@@ -5,6 +5,7 @@ import paho.mqtt.client as mqtt
 import rclpy
 from rclpy.node import Node
 from std_msgs.msg import String
+from geometry_msgs.msg import PoseStamped
 
 
 class RobotCommandNode(Node):
@@ -13,6 +14,9 @@ class RobotCommandNode(Node):
 
         # 1. 서버(내부 노드)로부터 ROS2 토픽(/plantmate/robot_command) 구독 설정
         self.create_subscription(String, '/plantmate/robot_command', self.on_command, 10)
+        
+        # 2. JetRover 내비게이션(Nav2) 목적지 발행자(Publisher) 생성
+        self.nav_pub = self.create_publisher(PoseStamped, '/goal_pose', 10)
 
         # [네트워크 설정] 노트북 PC(WSL)의 가상 IP 주소
         self.declare_parameter('mqtt_host', '192.168.0.4')
@@ -27,18 +31,19 @@ class RobotCommandNode(Node):
 
         self.status_topic = f'device/{self.device_type}/{self.device_id}/status'
 
-        self.valid_actions = {'water'}
+        # 로봇이 'water' 뿐만 아니라 'move' 명령도 허용하도록 추가
+        self.valid_actions = {'water', 'move', 'MOVE'} 
 
         try:
             self.mqtt_client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION1)
 
-            # [추가된 핵심 기능 1] 노트북(MQTT)에서 날아온 메시지를 처리할 콜백 함수 연결
+            # 노트북(MQTT)에서 날아온 메시지를 처리할 콜백 함수 연결
             self.mqtt_client.on_message = self.on_mqtt_message
 
             self.mqtt_client.connect(self.mqtt_host, self.mqtt_port, 60)
             self.mqtt_client.loop_start()
 
-            # [추가된 핵심 기능 2] 노트북(MQTT)에서 날리는 명령어를 직접 수신하기 위해 방 이름 구독
+            # 노트북(MQTT)에서 날리는 명령어를 직접 수신하기 위해 방 이름 구독
             self.mqtt_client.subscribe('/plantmate/robot_command')
 
             self.get_logger().info(f'MQTT connected! Subscribed to /plantmate/robot_command | Pub: {self.status_topic}')
@@ -46,7 +51,6 @@ class RobotCommandNode(Node):
             self.mqtt_client = None
             self.get_logger().error(f'Failed to connect MQTT: {e}')
 
-    # [추가된 핵심 기능 3] 노트북에서 쏜 MQTT 메시지를 가공해서 기존 로직(ROS2)으로 넘겨주는 다리 함수
     def on_mqtt_message(self, client, userdata, msg):
         try:
             payload_str = msg.payload.decode('utf-8')
@@ -64,26 +68,28 @@ class RobotCommandNode(Node):
             self.get_logger().error(f'Invalid command json: {e}')
             return
 
-        action = str(data.get('action', '')).strip()
+        # 명령 종류(action)를 가져옵니다. 
+        action_raw = str(data.get('action', '')).strip()
+        action = action_raw.lower() # 소문자로 통일해서 비교하기 쉽게 변경
+        
         plant_id = data.get('plantId', 0)
         detail = str(data.get('detail', '')).strip()
 
         # 로봇 터미널 창에 INFO 로그가 실시간으로 출력됩니다.
         self.get_logger().info(
-            f'Received command: plant_id={plant_id}, action={action}, detail={detail}'
+            f'Received command: plant_id={plant_id}, action={action_raw}, detail={detail}'
         )
 
-        if action not in self.valid_actions:
-            self.get_logger().warn(f'Unsupported action: {action}')
+        if action not in {'water', 'move'}:
+            self.get_logger().warn(f'Unsupported action: {action_raw}')
             return
 
-        if not isinstance(plant_id, int) or plant_id <= 0:
-            self.get_logger().warn(f'Invalid plantId: {plant_id}')
-            return
-
+        # -------------------------------------------------------------
+        # 명령을 받자마자 서버에 ACK 송신하는 로직
+        # -------------------------------------------------------------
         ack_payload = {
             'eventType': 'COMMAND_RECEIVED',
-            'message': action,
+            'message': action_raw,
             'plantId': plant_id,
             'detail': detail,
         }
@@ -102,7 +108,36 @@ class RobotCommandNode(Node):
         else:
             self.get_logger().warn(f'MQTT disconnected, ACK skipped: {ack_payload}')
 
-        self.get_logger().info(f'Command accepted for ROB-001 only: {action}')
+        # -------------------------------------------------------------
+        # 수신된 명령(action)에 따라 실제 로봇을 움직이는 분기 처리
+        # -------------------------------------------------------------
+        if action == 'move':
+            target_x = 0.0
+            target_y = 0.0
+            
+            # 서버가 보낸 detail 문자열 내부의 JSON을 한 번 더 파싱하여 x, y 추출
+            if detail:
+                try:
+                    detail_json = json.loads(detail)
+                    target_x = float(detail_json.get('x', 0.0))
+                    target_y = float(detail_json.get('y', 0.0))
+                except Exception as e:
+                    self.get_logger().error(f'좌표 파싱 실패: {e}')
+            
+            # Nav2 자율주행 스택에 보낼 규격 메시지 생성
+            goal_msg = PoseStamped()
+            goal_msg.header.frame_id = 'map'
+            goal_msg.header.stamp = self.get_clock().now().to_msg()
+            goal_msg.pose.position.x = target_x
+            goal_msg.pose.position.y = target_y
+            goal_msg.pose.orientation.w = 1.0 # 기본 방향
+            
+            # 로봇 목적지 좌표 발행
+            self.nav_pub.publish(goal_msg)
+            self.get_logger().info(f'[자율주행 시작] 로봇이 다음 좌표로 이동합니다 -> X: {target_x}, Y: {target_y}')
+            
+        elif action == 'water':
+            self.get_logger().info('Command accepted for ROB-001 only: water (물주기 액션 실행 대기)')
 
     def destroy_node(self):
         if self.mqtt_client is not None:
