@@ -1,0 +1,17 @@
+{
+  "mqtt_host": "192.168.0.6",
+  "mqtt_port": 1883,
+  "device_type": "arm",
+  "device_id": "robot-1",
+  "command_topic": "/plantmate/robot_command",
+  "ros_command_topic": "/plantmate/robot_command",
+  "nav_goal_topic": "/goal_pose",
+  "odom_topic": "/odom",
+  "cmd_vel_topic": "/controller/cmd_vel",
+  "goal_tolerance": 0.15,
+  "angle_tolerance": 0.2,
+  "linear_gain": 0.35,
+  "angular_gain": 1.2,
+  "max_linear_speed": 0.25,
+  "max_angular_speed": 0.8
+}

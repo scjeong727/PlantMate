@@ -18,6 +18,7 @@
 #include "device_lock.h"
 #include "mqtt_adapter.h"
 #include "mqtt_device_registry.h"
+#include "server_config.h"
 
 DBQueue g_db_queue;
 CommandQueue g_command_queue;
@@ -36,6 +37,7 @@ int main()
     pthread_t sensing_thread;
     pthread_t mqtt_thread;
     signal(SIGPIPE, SIG_IGN);
+    server_config_load();
     
     db_queue_init(&g_db_queue);
     event_log_init(&g_event_log, 128);

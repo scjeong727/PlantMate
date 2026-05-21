@@ -19,6 +19,7 @@ import kr.ac.dju.plantmate.model.EventRecord;
 import kr.ac.dju.plantmate.model.MonitorSnapshot;
 import kr.ac.dju.plantmate.model.PlantProfile;
 import kr.ac.dju.plantmate.model.SensorRecord;
+import kr.ac.dju.plantmate.config.AppConfig;
 import kr.ac.dju.plantmate.parser.ResponseParser;
 import kr.ac.dju.plantmate.protocol.ConnectionConfig;
 import kr.ac.dju.plantmate.protocol.PlantGateway;
@@ -31,6 +32,7 @@ public class MqttPlantGateway implements PlantGateway {
     private static final String KEY_BROKER_PORT = "broker_port";
     private static final String KEY_BROKER_CLIENT = "broker_client";
     private final SharedPreferences preferences;
+    private final AppConfig appConfig;
     private final MqttManager mqttManager = new MqttManager();
     private final ResponseParser responseParser = new ResponseParser();
     private final List<String> sensorHistory = new ArrayList<>();
@@ -55,6 +57,7 @@ public class MqttPlantGateway implements PlantGateway {
 
     public MqttPlantGateway(Context context) {
         preferences = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        appConfig = AppConfig.load(context);
         mqttManager.setListener(new MqttManager.ManagerListener() {
             @Override
             public void onConnected(boolean reconnect) {
@@ -352,9 +355,9 @@ public class MqttPlantGateway implements PlantGateway {
 
     private BrokerConfig getBrokerConfig() {
         return new BrokerConfig(
-                preferences.getString(KEY_BROKER_HOST, "broker.hivemq.com"),
-                preferences.getInt(KEY_BROKER_PORT, 1883),
-                preferences.getString(KEY_BROKER_CLIENT, "PlantMate-MQTT")
+                preferences.getString(KEY_BROKER_HOST, appConfig.getDefaultHost()),
+                preferences.getInt(KEY_BROKER_PORT, appConfig.getMqttPort()),
+                preferences.getString(KEY_BROKER_CLIENT, appConfig.getClientId())
         );
     }
 

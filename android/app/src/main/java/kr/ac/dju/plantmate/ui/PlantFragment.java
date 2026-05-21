@@ -40,8 +40,6 @@ public class PlantFragment extends Fragment implements MainActivity.ServiceAware
     private ArrayAdapter<String> robotDeviceAdapter;
     private EditText editWaterDuration;
     private Spinner spinnerRobotDevice;
-    private EditText editRobotLinear;
-    private EditText editRobotAngular;
     private EditText editPositionX;
     private EditText editPositionY;
     private EditText editTempMin;
@@ -77,8 +75,6 @@ public class PlantFragment extends Fragment implements MainActivity.ServiceAware
         logPanel = view.findViewById(R.id.panel_detail_log);
         editWaterDuration = view.findViewById(R.id.edit_detail_water_duration);
         spinnerRobotDevice = view.findViewById(R.id.spinner_detail_robot_device);
-        editRobotLinear = view.findViewById(R.id.edit_detail_robot_linear);
-        editRobotAngular = view.findViewById(R.id.edit_detail_robot_angular);
         editPositionX = view.findViewById(R.id.edit_detail_position_x);
         editPositionY = view.findViewById(R.id.edit_detail_position_y);
         editTempMin = view.findViewById(R.id.edit_detail_temp_min);
@@ -284,21 +280,25 @@ public class PlantFragment extends Fragment implements MainActivity.ServiceAware
     }
 
     private void sendRobotMove() {
-        float linear;
-        float angular;
-        try {
-            linear = Float.parseFloat(editRobotLinear.getText().toString().trim());
-            angular = Float.parseFloat(editRobotAngular.getText().toString().trim());
-        } catch (NumberFormatException exception) {
-            showToast("linear/angular 값을 확인하세요.");
+        if (selectedPlant == null) {
+            return;
+        }
+        if (selectedPlant.getPositionX() == null || selectedPlant.getPositionY() == null) {
+            showToast("식물 좌표를 먼저 등록하세요.");
             return;
         }
 
-        sendRobotCommand("move", String.format(Locale.US, "linear=%.3f angular=%.3f", linear, angular));
+        String detail = String.format(
+                Locale.US,
+                "{\"x\":%.3f,\"y\":%.3f}",
+                selectedPlant.getPositionX(),
+                selectedPlant.getPositionY()
+        );
+        sendRobotCommand("move", detail);
     }
 
     private void sendRobotStop() {
-        sendRobotCommand("move", "linear=0.000 angular=0.000");
+        showToast("정지는 현재 좌표 이동 방식에서 사용하지 않습니다.");
     }
 
     private void sendRobotCommand(String action, String detail) {

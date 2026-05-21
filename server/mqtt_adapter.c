@@ -28,8 +28,8 @@
 #include "sensor_repository.h"
 #include "sensor_service.h"
 #include "user_service.h"
+#include "server_config.h"
 
-#define MQTT_PORT 1883
 #define MQTT_MAX_CLIENTS FD_SETSIZE
 #define MQTT_MAX_PACKET 8192
 #define MQTT_MAX_SUBS 16
@@ -329,6 +329,8 @@ void mqtt_adapter_publish_bridge_command(int plant_id, const char* action, const
         return;
 
     topic = getenv("PLANTMATE_ROS2_TOPIC");
+    if (!topic || topic[0] == '\0')
+        topic = server_config_get()->ros2_bridge_topic;
     if (!topic || topic[0] == '\0')
         topic = ROS2_BRIDGE_TOPIC_DEFAULT;
 
@@ -1216,6 +1218,7 @@ void* mqtt_adapter_thread_main(void* arg)
 {
     MYSQL conn;
     int server_sock;
+    int port = server_config_get()->mqtt_port;
     struct sockaddr_in addr;
     fd_set reads;
     int fd_max;
@@ -1243,7 +1246,7 @@ void* mqtt_adapter_thread_main(void* arg)
     memset(&addr, 0, sizeof(addr));
     addr.sin_family = AF_INET;
     addr.sin_addr.s_addr = INADDR_ANY;
-    addr.sin_port = htons(MQTT_PORT);
+    addr.sin_port = htons((uint16_t)port);
 
     if (bind(server_sock, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
         perror("mqtt bind");
@@ -1259,7 +1262,7 @@ void* mqtt_adapter_thread_main(void* arg)
         return NULL;
     }
 
-    printf("mqtt adapter listening on %d\n", MQTT_PORT);
+    printf("mqtt adapter listening on %d\n", port);
 
     while (1) {
         int i;

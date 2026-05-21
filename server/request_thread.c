@@ -7,6 +7,7 @@
 #include <signal.h>
 #include <dirent.h>
 #include <ctype.h>
+#include <stdint.h>
 
 #include "session_manager.h"
 #include "db_queue.h"
@@ -19,8 +20,8 @@
 #include "ros2_bridge.h"
 #include "mqtt_adapter.h"
 #include "mqtt_device_registry.h"
+#include "server_config.h"
 
-#define PORT 9000
 #define BUF_SIZE 4096
 
 extern CommandQueue g_command_queue;
@@ -538,6 +539,7 @@ void* request_thread_main(void* arg)
     (void)arg;
 
     int server_sock, client_sock = -1;
+    int port = server_config_get()->request_port;
     struct sockaddr_in server_addr, client_addr;
     socklen_t client_len;
     fd_set reads, cpy_reads;
@@ -561,7 +563,7 @@ void* request_thread_main(void* arg)
     memset(&server_addr, 0, sizeof(server_addr));
     server_addr.sin_family = AF_INET;
     server_addr.sin_addr.s_addr = INADDR_ANY;
-    server_addr.sin_port = htons(PORT);
+    server_addr.sin_port = htons((uint16_t)port);
 
     if (bind(server_sock, (struct sockaddr*)&server_addr, sizeof(server_addr)) == -1) {
         perror("bind");
@@ -579,7 +581,7 @@ void* request_thread_main(void* arg)
     FD_SET(server_sock, &reads);
     fd_max = server_sock;
 
-    printf("request thread listening on %d\n", PORT);
+    printf("request thread listening on %d\n", port);
 
     while (1)
     {

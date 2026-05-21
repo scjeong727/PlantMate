@@ -1,6 +1,7 @@
 #include "db.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include "server_config.h"
 
 static int db_table_exists(MYSQL* conn, const char* table_name)
 {
@@ -124,6 +125,8 @@ int db_ensure_schema(MYSQL* conn)
 
 int db_connect(MYSQL* conn)
 {
+    const ServerConfig* config;
+
     if (!conn) return 0;
 
     if (mysql_init(conn) == NULL) {
@@ -131,13 +134,14 @@ int db_connect(MYSQL* conn)
         return 0;
     }
 
+    config = server_config_get();
     if (!mysql_real_connect(
             conn,
-            "127.0.0.1",
-            "root",
-            "1234",
-            "plant_db",
-            0,
+            config->db_host,
+            config->db_user,
+            config->db_password,
+            config->db_name,
+            config->db_port,
             NULL,
             0)) {
         fprintf(stderr, "db_connect: %s\n", mysql_error(conn));

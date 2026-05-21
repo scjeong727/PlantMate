@@ -7,6 +7,8 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
+#include "server_config.h"
+
 static int is_safe_action(const char* action)
 {
     size_t i;
@@ -68,6 +70,8 @@ int ros2_bridge_publish_command(int plant_id, const char* action, const char* de
     }
 
     topic = getenv("PLANTMATE_ROS2_TOPIC");
+    if (!topic || topic[0] == '\0')
+        topic = server_config_get()->ros2_bridge_topic;
     if (!topic || topic[0] == '\0')
         topic = ROS2_BRIDGE_TOPIC_DEFAULT;
 

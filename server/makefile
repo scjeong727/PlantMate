@@ -10,6 +10,7 @@ sensor_thread.c request_thread.c command_queue.c watering_thread.c \
 sensor_buffer.c event_log.c cache_preload.c sensing.c device_lock.c\
 session_manager.c watering_lock.c plant_owner_cache.c plant_threshold_cache.c \
 mqtt_adapter.c sensor_event_dispatcher.c mqtt_device_registry.c mqtt_topic_helper.c \
+server_config.c \
 ros2_bridge.c
 
 LDFLAGS = -lmysqlclient -lpthread

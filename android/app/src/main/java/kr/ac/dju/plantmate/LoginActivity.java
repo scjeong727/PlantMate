@@ -16,6 +16,7 @@ import android.widget.Toast;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
+import kr.ac.dju.plantmate.config.AppConfig;
 import kr.ac.dju.plantmate.model.SessionState;
 import kr.ac.dju.plantmate.protocol.ConnectionConfig;
 import kr.ac.dju.plantmate.protocol.ProtocolType;
@@ -25,9 +26,6 @@ public class LoginActivity extends AppCompatActivity {
 
     private static final String PREFS_NAME = "plantmate_prefs";
     private static final String KEY_LAST_HOST = "last_host";
-    private static final String DEFAULT_HOST = "192.168.0.34";
-    private static final String DEFAULT_CLIENT_ID = "PlantMate-Android";
-    private static final int DEFAULT_MQTT_PORT = 1883;
 
     private enum PendingAction {
         LOGIN,
@@ -46,6 +44,7 @@ public class LoginActivity extends AppCompatActivity {
     private PlantClientService service;
     private boolean bound;
     private PendingAction pendingAction = PendingAction.LOGIN;
+    private AppConfig appConfig;
 
     private final ServiceConnection connection = new ServiceConnection() {
         @Override
@@ -67,6 +66,7 @@ public class LoginActivity extends AppCompatActivity {
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
+        appConfig = AppConfig.load(this);
 
         authPanel = findViewById(R.id.auth_panel);
         serverPanel = findViewById(R.id.server_panel);
@@ -110,7 +110,7 @@ public class LoginActivity extends AppCompatActivity {
             return;
         }
 
-        service.connect(new ConnectionConfig(ProtocolType.MQTT, host, DEFAULT_MQTT_PORT, DEFAULT_CLIENT_ID), new PlantClientService.ServiceCallback<SessionState>() {
+        service.connect(new ConnectionConfig(ProtocolType.MQTT, host, appConfig.getMqttPort(), appConfig.getClientId()), new PlantClientService.ServiceCallback<SessionState>() {
             @Override
             public void onSuccess(SessionState data) {
                 saveLastHost(host);
@@ -223,7 +223,7 @@ public class LoginActivity extends AppCompatActivity {
 
     private String getLastHost() {
         SharedPreferences preferences = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-        return preferences.getString(KEY_LAST_HOST, DEFAULT_HOST);
+        return preferences.getString(KEY_LAST_HOST, appConfig.getDefaultHost());
     }
 
     private void saveLastHost(String host) {

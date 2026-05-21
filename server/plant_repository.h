@@ -38,5 +38,12 @@ int plant_repository_edit(
 int plant_repository_remove_sensor_data_by_plant(MYSQL* conn, int plant_id);
 int plant_repository_remove_events_by_plant(MYSQL* conn, int plant_id);
 int plant_repository_exists_by_user(MYSQL* conn, int plant_id, int user_id);
+int plant_repository_get_position(
+    MYSQL* conn,
+    int plant_id,
+    double* position_x,
+    double* position_y,
+    int* has_position
+);
 
 #endif

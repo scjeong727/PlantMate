@@ -12,12 +12,12 @@
 #include "plant_threshold_cache.h"
 #include "sensor_event_dispatcher.h"
 #include "mqtt_adapter.h"
+#include "server_config.h"
 
 extern DBQueue g_db_queue;
 extern SensorBuffer g_sensor_buffer;
 extern EventLog g_event_log;
 
-#define SENSOR_PORT 9001
 #define BUF_SIZE 4096
 
 static void push_db_req(int client_sock, const char* text)
@@ -40,6 +40,7 @@ void* sensor_thread_main(void* arg)
     (void)arg;
 
     int s, c;
+    int port = server_config_get()->sensor_port;
     struct sockaddr_in a, ca;
     socklen_t l;
     char buf[BUF_SIZE];
@@ -58,7 +59,7 @@ void* sensor_thread_main(void* arg)
     memset(&a, 0, sizeof(a));
     a.sin_family = AF_INET;
     a.sin_addr.s_addr = INADDR_ANY;
-    a.sin_port = htons(SENSOR_PORT);
+    a.sin_port = htons((uint16_t)port);
 
     if (bind(s, (struct sockaddr*)&a, sizeof(a)) == -1) {
         perror("bind");
@@ -72,7 +73,7 @@ void* sensor_thread_main(void* arg)
         return NULL;
     }
 
-    printf("sensor thread listening on %d\n", SENSOR_PORT);
+    printf("sensor thread listening on %d\n", port);
 
     while (1)
     {

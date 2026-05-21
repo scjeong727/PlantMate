@@ -600,3 +600,48 @@ int plant_repository_remove_events_by_plant(MYSQL* conn, int plant_id)
 
     return (mysql_query(conn, query) == 0);
 }
+
+int plant_repository_get_position(
+    MYSQL* conn,
+    int plant_id,
+    double* position_x,
+    double* position_y,
+    int* has_position)
+{
+    char query[256];
+    MYSQL_RES* res;
+    MYSQL_ROW row;
+
+    if (!conn || plant_id <= 0 || !position_x || !position_y || !has_position)
+        return 0;
+
+    *position_x = 0.0;
+    *position_y = 0.0;
+    *has_position = 0;
+
+    snprintf(query, sizeof(query),
+        "SELECT position_x, position_y FROM plants WHERE plant_id=%d LIMIT 1",
+        plant_id);
+
+    if (mysql_query(conn, query) != 0)
+        return 0;
+
+    res = mysql_store_result(conn);
+    if (!res)
+        return 0;
+
+    row = mysql_fetch_row(res);
+    if (!row) {
+        mysql_free_result(res);
+        return 0;
+    }
+
+    if (row[0] && row[1]) {
+        *position_x = atof(row[0]);
+        *position_y = atof(row[1]);
+        *has_position = 1;
+    }
+
+    mysql_free_result(res);
+    return 1;
+}
