@@ -333,8 +333,6 @@ commands such as `/cmd_vel`.
 ## Current Verified State After Bridge Alignment
 
 The server has been aligned to the current ROS bridge node topic format.
-The server build is currently clean: running `make` in `server/` completes
-without errors.
 
 Current command topic:
 
@@ -360,7 +358,7 @@ Terminal 1:
 
 ```bash
 cd /mnt/c/Users/user/DeploymentProgram/server
-make
+make -B
 ./server
 ```
 
@@ -777,7 +775,7 @@ Terminal 1:
 
 ```bash
 cd /mnt/c/Users/user/DeploymentProgram/server
-make
+make -B
 ./server
 ```
 
