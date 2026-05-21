@@ -19,7 +19,7 @@ class RobotCommandNode(Node):
         self.nav_pub = self.create_publisher(PoseStamped, '/goal_pose', 10)
 
         # [네트워크 설정] 노트북 PC(WSL)의 가상 IP 주소
-        self.declare_parameter('mqtt_host', '192.168.0.4')
+        self.declare_parameter('mqtt_host', '192.168.0.6')
         self.declare_parameter('mqtt_port', 1883)
         self.declare_parameter('device_type', 'arm')
         self.declare_parameter('device_id', 'robot-1')
@@ -112,6 +112,9 @@ class RobotCommandNode(Node):
         # 수신된 명령(action)에 따라 실제 로봇을 움직이는 분기 처리
         # -------------------------------------------------------------
         if action == 'move':
+            self.get_logger().info(f'이동명령 처리 금지')
+            
+        elif action == 'water':
             target_x = 0.0
             target_y = 0.0
             
@@ -135,9 +138,6 @@ class RobotCommandNode(Node):
             # 로봇 목적지 좌표 발행
             self.nav_pub.publish(goal_msg)
             self.get_logger().info(f'[자율주행 시작] 로봇이 다음 좌표로 이동합니다 -> X: {target_x}, Y: {target_y}')
-            
-        elif action == 'water':
-            self.get_logger().info('Command accepted for ROB-001 only: water (물주기 액션 실행 대기)')
 
     def destroy_node(self):
         if self.mqtt_client is not None:
