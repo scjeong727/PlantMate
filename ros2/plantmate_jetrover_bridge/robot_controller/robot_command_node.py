@@ -6,6 +6,7 @@ import rclpy
 from rclpy.node import Node
 from std_msgs.msg import String
 from geometry_msgs.msg import PoseStamped
+from geometry_msgs.msg import Twist
 
 
 class RobotCommandNode(Node):
@@ -14,14 +15,15 @@ class RobotCommandNode(Node):
 
         # 1. 서버(내부 노드)로부터 ROS2 토픽(/plantmate/robot_command) 구독 설정
         self.create_subscription(String, '/plantmate/robot_command', self.on_command, 10)
-        
+
         # 2. JetRover 내비게이션(Nav2) 목적지 발행자(Publisher) 생성
         self.nav_pub = self.create_publisher(PoseStamped, '/goal_pose', 10)
+        self.cmd_vel_pub = self.create_publisher(Twist, '/cmd_vel', 10)
 
         # [네트워크 설정] 노트북 PC(WSL)의 가상 IP 주소
         self.declare_parameter('mqtt_host', '192.168.0.4')
         self.declare_parameter('mqtt_port', 1883)
-        self.declare_parameter('device_type', 'arm')
+        self.declare_parameter('device_type', 'robot')
         self.declare_parameter('device_id', 'robot-1')
 
         self.mqtt_host = self.get_parameter('mqtt_host').get_parameter_value().string_value
@@ -32,7 +34,7 @@ class RobotCommandNode(Node):
         self.status_topic = f'device/{self.device_type}/{self.device_id}/status'
 
         # 로봇이 'water' 뿐만 아니라 'move' 명령도 허용하도록 추가
-        self.valid_actions = {'water', 'move', 'MOVE'} 
+        self.valid_actions = {'water', 'move', 'MOVE'}
 
         try:
             self.mqtt_client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION1)
@@ -68,10 +70,10 @@ class RobotCommandNode(Node):
             self.get_logger().error(f'Invalid command json: {e}')
             return
 
-        # 명령 종류(action)를 가져옵니다. 
+        # 명령 종류(action)를 가져옵니다.
         action_raw = str(data.get('action', '')).strip()
         action = action_raw.lower() # 소문자로 통일해서 비교하기 쉽게 변경
-        
+
         plant_id = data.get('plantId', 0)
         detail = str(data.get('detail', '')).strip()
 
@@ -112,32 +114,62 @@ class RobotCommandNode(Node):
         # 수신된 명령(action)에 따라 실제 로봇을 움직이는 분기 처리
         # -------------------------------------------------------------
         if action == 'move':
-            target_x = 0.0
-            target_y = 0.0
-            
-            # 서버가 보낸 detail 문자열 내부의 JSON을 한 번 더 파싱하여 x, y 추출
-            if detail:
-                try:
-                    detail_json = json.loads(detail)
-                    target_x = float(detail_json.get('x', 0.0))
-                    target_y = float(detail_json.get('y', 0.0))
-                except Exception as e:
-                    self.get_logger().error(f'좌표 파싱 실패: {e}')
-            
-            # Nav2 자율주행 스택에 보낼 규격 메시지 생성
+            self.handle_move(detail)
+
+        elif action == 'water':
+            self.get_logger().info('Command accepted for ROB-001 only: water (물주기 액션 실행 대기)')
+
+    def handle_move(self, detail):
+        move_args = self.parse_detail(detail)
+
+        if 'x' in move_args or 'y' in move_args:
+            target_x = float(move_args.get('x', 0.0))
+            target_y = float(move_args.get('y', 0.0))
+
             goal_msg = PoseStamped()
             goal_msg.header.frame_id = 'map'
             goal_msg.header.stamp = self.get_clock().now().to_msg()
             goal_msg.pose.position.x = target_x
             goal_msg.pose.position.y = target_y
-            goal_msg.pose.orientation.w = 1.0 # 기본 방향
-            
-            # 로봇 목적지 좌표 발행
+            goal_msg.pose.orientation.w = 1.0
+
             self.nav_pub.publish(goal_msg)
-            self.get_logger().info(f'[자율주행 시작] 로봇이 다음 좌표로 이동합니다 -> X: {target_x}, Y: {target_y}')
-            
-        elif action == 'water':
-            self.get_logger().info('Command accepted for ROB-001 only: water (물주기 액션 실행 대기)')
+            self.get_logger().info(f'[자율주행 시작] 목적지 좌표 -> X: {target_x}, Y: {target_y}')
+            return
+
+        linear = float(move_args.get('linear', 0.0))
+        angular = float(move_args.get('angular', 0.0))
+
+        twist_msg = Twist()
+        twist_msg.linear.x = linear
+        twist_msg.angular.z = angular
+        self.cmd_vel_pub.publish(twist_msg)
+        self.get_logger().info(f'[속도 명령] linear.x={linear}, angular.z={angular}')
+
+    def parse_detail(self, detail):
+        if not detail:
+            return {}
+
+        try:
+            parsed = json.loads(detail)
+            if isinstance(parsed, dict):
+                return parsed
+        except Exception:
+            pass
+
+        result = {}
+        for token in detail.replace(',', ' ').split():
+            if '=' not in token:
+                continue
+            key, value = token.split('=', 1)
+            key = key.strip()
+            if not key:
+                continue
+            try:
+                result[key] = float(value)
+            except ValueError:
+                result[key] = value
+        return result
 
     def destroy_node(self):
         if self.mqtt_client is not None:

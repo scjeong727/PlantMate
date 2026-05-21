@@ -890,8 +890,6 @@ static void handle_rpc_publish(MqttClient* client, MYSQL* conn, const char* payl
     if (strcmp(action, "robotCommand") == 0) {
         char robot_action[ROS2_BRIDGE_ACTION_MAX];
         char detail[ROS2_BRIDGE_DETAIL_MAX];
-        char escaped_detail[ROS2_BRIDGE_DETAIL_MAX * 2];
-        char command_payload[512];
         MqttDeviceBinding binding;
 
         memset(detail, 0, sizeof(detail));
@@ -908,11 +906,7 @@ static void handle_rpc_publish(MqttClient* client, MYSQL* conn, const char* payl
         }
 
         if (mqtt_device_registry_get(plant_id, "robot", &binding)) {
-            mqtt_copy_json_string(escaped_detail, sizeof(escaped_detail), detail);
-            snprintf(command_payload, sizeof(command_payload),
-                "{\"plantId\":%d,\"action\":\"%s\",\"detail\":\"%s\"}",
-                plant_id, robot_action, escaped_detail);
-            mqtt_adapter_publish_device_command(binding.device_type, binding.device_id, robot_action, command_payload);
+            mqtt_adapter_publish_bridge_command(plant_id, robot_action, detail);
             mqtt_publish_rpc_ok_raw(client, request_id, "{\"message\":\"robot_command_published\"}");
             return;
         }
@@ -1038,8 +1032,8 @@ static void handle_publish(MqttClient* client, MYSQL* conn, unsigned char header
                 mqtt_forward_bound_device_status(binding.plant_id, "sensor", payload);
             if (mqtt_device_registry_find_binding_by_device("water", device_type, device_id, &binding))
                 mqtt_forward_bound_device_status(binding.plant_id, "water", payload);
-            if (mqtt_device_registry_find_binding_by_device("arm", device_type, device_id, &binding))
-                mqtt_forward_bound_device_status(binding.plant_id, "arm", payload);
+            if (mqtt_device_registry_find_binding_by_device("robot", device_type, device_id, &binding))
+                mqtt_forward_bound_device_status(binding.plant_id, "robot", payload);
             return;
         }
 
