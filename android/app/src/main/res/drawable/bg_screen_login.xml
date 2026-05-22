@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:angle="270"
+                android:endColor="@color/background_bottom"
+                android:startColor="@color/background_top"
+                android:type="linear" />
+        </shape>
+    </item>
+    <item
+        android:gravity="top"
+        android:height="200dp">
+        <shape android:shape="rectangle">
+            <gradient
+                android:angle="270"
+                android:endColor="@color/login_scrim_end"
+                android:startColor="@color/login_scrim_start"
+                android:type="linear" />
+        </shape>
+    </item>
+</layer-list>

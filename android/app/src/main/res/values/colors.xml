@@ -1,19 +1,64 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="primary_blue">#4F83C2</color>
-    <color name="primary_blue_dark">#315D95</color>
-    <color name="secondary_teal">#5E9E8A</color>
+    <!-- 1순위 팔레트: 쿨 네이비 + 오프화이트 + mint accent ≤5% -->
+    <color name="bg_gradient_start">#F5F6F8</color>
+    <color name="bg_gradient_end">#EEF1F5</color>
+    <color name="surface_card">#FFFFFF</color>
+    <color name="text_primary">#1A2332</color>
+    <color name="text_secondary">#5C6B7A</color>
+    <color name="primary">#3D5A80</color>
+    <color name="primary_dark">#2F4763</color>
+    <color name="stroke_neutral">#E2E6EA</color>
+    <color name="text_hint">#8B95A5</color>
+    <color name="mint_accent">#6B9B8A</color>
+    <color name="mint_accent_dark">#5A8574</color>
+    <color name="surface_soft">#EEF1F5</color>
+    <color name="surface_section">#FFFFFF</color>
     <color name="danger_red">#C96A5C</color>
-    <color name="plant_placeholder_purple">#8B5CF6</color>
-    <color name="surface_card">#FDFEFF</color>
-    <color name="surface_soft">#EEF4FB</color>
-    <color name="surface_section">#F7FAFD</color>
-    <color name="stroke_soft">#C9D8EA</color>
-    <color name="text_primary">#17324D</color>
-    <color name="text_secondary">#5E7490</color>
-    <color name="text_hint">#89A0BA</color>
-    <color name="background_top">#F4F8FD</color>
-    <color name="background_bottom">#E4F0EA</color>
+    <color name="surface_placeholder">#E8EBEF</color>
+
+    <!-- Main shell header — soft light green -->
+    <color name="header_light_green_start">#E8F5E9</color>
+    <color name="header_light_green_end">#D4EDDA</color>
+    <!-- Plant list / main content — modern cool-sage gradient -->
+    <color name="screen_modern_top">#F2F6F3</color>
+    <color name="screen_modern_bottom">#E8EEF4</color>
+
+    <!-- Per-screen background tints -->
+    <color name="screen_plant_top">#F8FAFC</color>
+    <color name="screen_plant_bottom">#EEF5F3</color>
+    <color name="screen_monitor_top">#F2F5F8</color>
+    <color name="screen_monitor_bottom">#EEF2F6</color>
+    <color name="screen_water_top">#F3F6FA</color>
+    <color name="screen_water_bottom">#EEF3F8</color>
+    <color name="screen_robot_top">#F5F6F8</color>
+    <color name="screen_robot_bottom">#F0F2F5</color>
+    <color name="login_header_start">#4A6B8F</color>
+    <color name="login_header_end">#3D5A80</color>
+    <!-- Main shell header (light green; distinct from login navy) -->
+    <color name="main_header_start">@color/header_light_green_start</color>
+    <color name="main_header_end">@color/header_light_green_end</color>
+    <color name="login_scrim_start">#4D3D5A80</color>
+    <color name="login_scrim_end">#003D5A80</color>
+
+    <!-- Legacy aliases (names preserved; values → new palette) -->
+    <color name="navy_primary">#1A2332</color>
+    <color name="navy_secondary">#5C6B7A</color>
+    <color name="mint_surface">#EEF1F5</color>
+    <color name="mint_surface_light">#F5F6F8</color>
+    <color name="stroke_mint">#E2E6EA</color>
+    <color name="primary_blue">#3D5A80</color>
+    <color name="primary_blue_dark">#2F4763</color>
+    <color name="secondary_teal">#6B9B8A</color>
+    <color name="plant_primary">#3D5A80</color>
+    <color name="plant_primary_dark">#2F4763</color>
+    <color name="plant_stroke">#E2E6EA</color>
+    <color name="plant_surface_soft">#EEF1F5</color>
+    <color name="plant_placeholder_purple">#E8EBEF</color>
+    <color name="stroke_soft">#E2E6EA</color>
+    <color name="text_caption">#5C6B7A</color>
+    <color name="background_top">#F5F6F8</color>
+    <color name="background_bottom">#EEF1F5</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
 </resources>
