@@ -47,7 +47,9 @@ public class RobotFragment extends Fragment implements MainActivity.ServiceAware
         plantAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinnerPlant.setAdapter(plantAdapter);
 
-        ((Button) view.findViewById(R.id.btn_robot_move)).setOnClickListener(v -> sendMove());
+        Button moveButton = view.findViewById(R.id.btn_robot_move);
+        moveButton.setEnabled(false);
+        moveButton.setOnClickListener(v -> sendMove());
         ((Button) view.findViewById(R.id.btn_robot_stop)).setOnClickListener(v -> sendStop());
     }
 
@@ -87,16 +89,12 @@ public class RobotFragment extends Fragment implements MainActivity.ServiceAware
             showStatus("식물을 선택하세요.");
             return;
         }
-        if (plant.getPositionX() == null || plant.getPositionY() == null) {
-            showStatus("식물 좌표를 먼저 등록하세요.");
-            return;
-        }
 
         String detail = String.format(
                 Locale.US,
-                "{\"x\":%.3f,\"y\":%.3f}",
-                plant.getPositionX(),
-                plant.getPositionY()
+                "x=%.3f y=%.3f",
+                1.0,
+                0.0
         );
         sendRobotCommand("move", detail);
     }

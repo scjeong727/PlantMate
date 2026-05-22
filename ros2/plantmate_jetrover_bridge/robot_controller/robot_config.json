@@ -13,5 +13,7 @@
   "linear_gain": 0.35,
   "angular_gain": 1.2,
   "max_linear_speed": 0.25,
-  "max_angular_speed": 0.8
+  "max_angular_speed": 0.8,
+  "use_start_pose_as_origin": true,
+  "reset_origin_on_command": true
 }

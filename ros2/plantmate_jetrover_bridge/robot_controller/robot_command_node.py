@@ -27,6 +27,8 @@ DEFAULT_CONFIG = {
     'angular_gain': 1.2,
     'max_linear_speed': 0.25,
     'max_angular_speed': 0.8,
+    'use_start_pose_as_origin': True,
+    'reset_origin_on_command': True,
 }
 
 
@@ -116,6 +118,8 @@ class RobotCommandNode(Node):
         self.declare_parameter('angular_gain', float(config['angular_gain']))
         self.declare_parameter('max_linear_speed', float(config['max_linear_speed']))
         self.declare_parameter('max_angular_speed', float(config['max_angular_speed']))
+        self.declare_parameter('use_start_pose_as_origin', bool(config['use_start_pose_as_origin']))
+        self.declare_parameter('reset_origin_on_command', bool(config['reset_origin_on_command']))
 
         self.mqtt_host = self.get_parameter('mqtt_host').get_parameter_value().string_value
         self.mqtt_port = self.get_parameter('mqtt_port').get_parameter_value().integer_value
@@ -132,11 +136,20 @@ class RobotCommandNode(Node):
         self.angular_gain = self.get_parameter('angular_gain').get_parameter_value().double_value
         self.max_linear_speed = self.get_parameter('max_linear_speed').get_parameter_value().double_value
         self.max_angular_speed = self.get_parameter('max_angular_speed').get_parameter_value().double_value
+        self.use_start_pose_as_origin = self.get_parameter('use_start_pose_as_origin').get_parameter_value().bool_value
+        self.reset_origin_on_command = self.get_parameter('reset_origin_on_command').get_parameter_value().bool_value
 
         self.current_x = 0.0
         self.current_y = 0.0
         self.current_yaw = 0.0
+        self.raw_x = 0.0
+        self.raw_y = 0.0
+        self.raw_yaw = 0.0
         self.has_odom = False
+        self.origin_x = 0.0
+        self.origin_y = 0.0
+        self.origin_yaw = 0.0
+        self.has_origin = False
         self.active_goal = None
 
         # 1. 서버(내부 노드)로부터 ROS2 토픽(/plantmate/robot_command) 구독 설정
@@ -172,10 +185,50 @@ class RobotCommandNode(Node):
 
     def on_odom(self, msg):
         pose = msg.pose.pose
-        self.current_x = pose.position.x
-        self.current_y = pose.position.y
-        self.current_yaw = yaw_from_quaternion(pose.orientation)
+        self.raw_x = pose.position.x
+        self.raw_y = pose.position.y
+        self.raw_yaw = yaw_from_quaternion(pose.orientation)
+
+        if self.use_start_pose_as_origin and not self.has_origin:
+            self.reset_origin('현재 위치를 기준 원점으로 설정')
+
+        self.update_relative_pose()
         self.has_odom = True
+
+    def reset_origin(self, reason):
+        self.origin_x = self.raw_x
+        self.origin_y = self.raw_y
+        self.origin_yaw = self.raw_yaw
+        self.has_origin = True
+        self.update_relative_pose()
+        self.get_logger().info(
+            f'{reason}: x={self.origin_x:.3f}, y={self.origin_y:.3f}, yaw={self.origin_yaw:.3f}'
+        )
+
+    def update_relative_pose(self):
+        if self.use_start_pose_as_origin and self.has_origin:
+            dx = self.raw_x - self.origin_x
+            dy = self.raw_y - self.origin_y
+            cos_yaw = math.cos(-self.origin_yaw)
+            sin_yaw = math.sin(-self.origin_yaw)
+            self.current_x = dx * cos_yaw - dy * sin_yaw
+            self.current_y = dx * sin_yaw + dy * cos_yaw
+            self.current_yaw = normalize_angle(self.raw_yaw - self.origin_yaw)
+        else:
+            self.current_x = self.raw_x
+            self.current_y = self.raw_y
+            self.current_yaw = self.raw_yaw
+
+    def prepare_command_origin(self):
+        if not self.reset_origin_on_command:
+            return True
+
+        if not self.has_odom:
+            self.get_logger().warn('odom 수신 전이라 명령 기준 원점을 설정할 수 없습니다.')
+            return False
+
+        self.reset_origin('명령 수신 시 현재 위치를 기준 원점으로 재설정')
+        return True
 
     def publish_stop(self):
         self.cmd_vel_pub.publish(Twist())
@@ -313,6 +366,9 @@ class RobotCommandNode(Node):
                 self.get_logger().error(f'좌표 파싱 실패: {e}')
                 return
 
+            if not self.prepare_command_origin():
+                return
+
             self.set_navigation_goal(target_x, target_y, 'move', plant_id)
             self.get_logger().info(f'[자율주행 시작] 로봇이 다음 좌표로 이동합니다 -> X: {target_x}, Y: {target_y}')
 
@@ -326,6 +382,9 @@ class RobotCommandNode(Node):
                     target_y = float(detail_data.get('y', 0.0))
                 except Exception as e:
                     self.get_logger().error(f'좌표 파싱 실패: {e}')
+                    return
+
+                if not self.prepare_command_origin():
                     return
 
                 self.set_navigation_goal(target_x, target_y, 'water', plant_id, duration)
