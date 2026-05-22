@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Spacing scale -->
+    <dimen name="spacing_sm">8dp</dimen>
+    <dimen name="spacing_md">12dp</dimen>
+    <dimen name="spacing_lg">16dp</dimen>
+    <dimen name="spacing_xl">24dp</dimen>
+    <dimen name="spacing_screen">16dp</dimen>
+    <dimen name="spacing_section">16dp</dimen>
+    <dimen name="spacing_card">12dp</dimen>
+    <dimen name="spacing_item">8dp</dimen>
+
+    <!-- Component sizes -->
+    <dimen name="input_height">48dp</dimen>
+    <dimen name="button_height">48dp</dimen>
+    <dimen name="plant_input_height">48dp</dimen>
+
+    <!-- Corners & elevation -->
+    <dimen name="corner_radius_sm">16dp</dimen>
+    <dimen name="corner_radius_md">20dp</dimen>
+    <dimen name="plant_card_radius">16dp</dimen>
+    <dimen name="plant_section_radius">20dp</dimen>
+    <dimen name="elevation_card">4dp</dimen>
+    <dimen name="elevation_card_low">2dp</dimen>
+    <dimen name="plant_hero_height">200dp</dimen>
+    <dimen name="plant_bottom_nav_elevation">6dp</dimen>
+</resources>

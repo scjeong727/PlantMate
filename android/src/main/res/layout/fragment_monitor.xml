@@ -1,0 +1,240 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/bg_screen_monitor"
+    android:padding="@dimen/spacing_lg">
+
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:clipToPadding="false"
+        android:fillViewport="true"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingBottom="@dimen/spacing_lg">
+
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:cardBackgroundColor="@color/surface_card"
+                app:cardCornerRadius="@dimen/plant_section_radius"
+                app:cardElevation="@dimen/elevation_card"
+                app:strokeColor="@color/plant_stroke"
+                app:strokeWidth="1dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="@dimen/spacing_lg">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="스트림 설정"
+                        android:textAppearance="@style/TextAppearance.PlantMate.SectionTitle" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/spacing_sm"
+                        android:text="식물 및 센서 장치를 선택하세요"
+                        android:textAppearance="@style/TextAppearance.PlantMate.Caption" />
+
+                    <Spinner
+                        android:id="@+id/spinner_monitor_plant"
+                        android:layout_width="match_parent"
+                        android:layout_height="@dimen/input_height"
+                        android:layout_marginTop="@dimen/spacing_md"
+                        android:background="@drawable/bg_input"
+                        android:paddingHorizontal="@dimen/spacing_md" />
+
+                    <Spinner
+                        android:id="@+id/spinner_sensor_device"
+                        android:layout_width="match_parent"
+                        android:layout_height="@dimen/input_height"
+                        android:layout_marginTop="@dimen/spacing_md"
+                        android:background="@drawable/bg_input"
+                        android:paddingHorizontal="@dimen/spacing_md" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/spacing_md"
+                        android:orientation="horizontal">
+
+                        <Button
+                            android:id="@+id/btn_sensor_stream_start"
+                            android:layout_width="0dp"
+                            android:layout_height="@dimen/button_height"
+                            android:layout_marginEnd="@dimen/spacing_sm"
+                            android:layout_weight="1"
+                            android:background="@drawable/bg_primary_button"
+                            android:text="스트림 시작"
+                            android:textAllCaps="false"
+                            android:textColor="@color/white"
+                            android:textStyle="bold" />
+
+                        <Button
+                            android:id="@+id/btn_sensor_stream_stop"
+                            android:layout_width="0dp"
+                            android:layout_height="@dimen/button_height"
+                            android:layout_marginStart="@dimen/spacing_sm"
+                            android:layout_weight="1"
+                            android:background="@drawable/bg_secondary_button"
+                            android:text="스트림 중지"
+                            android:textAllCaps="false"
+                            android:textColor="@color/navy_primary"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_md"
+                app:cardBackgroundColor="@color/surface_card"
+                app:cardCornerRadius="@dimen/plant_section_radius"
+                app:cardElevation="@dimen/elevation_card"
+                app:strokeColor="@color/plant_stroke"
+                app:strokeWidth="1dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="@dimen/spacing_lg">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="현재 센서 상태"
+                        android:textAppearance="@style/TextAppearance.PlantMate.SectionTitle" />
+
+                    <TextView
+                        android:id="@+id/text_temp_value"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/spacing_md"
+                        android:text="온도 -"
+                        android:textAppearance="@style/TextAppearance.PlantMate.Body" />
+
+                    <TextView
+                        android:id="@+id/text_humi_value"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/spacing_sm"
+                        android:text="습도 -"
+                        android:textAppearance="@style/TextAppearance.PlantMate.Body" />
+
+                    <TextView
+                        android:id="@+id/text_soil_value"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/spacing_sm"
+                        android:text="토양 -"
+                        android:textAppearance="@style/TextAppearance.PlantMate.Body" />
+
+                    <TextView
+                        android:id="@+id/text_light_value"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/spacing_sm"
+                        android:text="조도 -"
+                        android:textAppearance="@style/TextAppearance.PlantMate.Body" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_md"
+                app:cardBackgroundColor="@color/surface_card"
+                app:cardCornerRadius="@dimen/plant_section_radius"
+                app:cardElevation="@dimen/elevation_card"
+                app:strokeColor="@color/plant_stroke"
+                app:strokeWidth="1dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="@dimen/spacing_lg">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="최근 이벤트"
+                        android:textAppearance="@style/TextAppearance.PlantMate.SectionTitle" />
+
+                    <TextView
+                        android:id="@+id/text_recent_event"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/spacing_md"
+                        android:background="@drawable/bg_status_box"
+                        android:minHeight="60dp"
+                        android:padding="@dimen/spacing_md"
+                        android:text="-"
+                        android:textAppearance="@style/TextAppearance.PlantMate.BodyMedium" />
+
+                    <Button
+                        android:id="@+id/btn_monitor_refresh"
+                        android:layout_width="match_parent"
+                        android:layout_height="@dimen/button_height"
+                        android:layout_marginTop="@dimen/spacing_md"
+                        android:background="@drawable/bg_primary_button"
+                        android:text="현재 상태 새로고침"
+                        android:textAllCaps="false"
+                        android:textColor="@color/white"
+                        android:textStyle="bold" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_lg"
+                android:layout_marginStart="@dimen/spacing_sm"
+                android:text="센서 이력"
+                android:textAppearance="@style/TextAppearance.PlantMate.SectionLabel" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/recycler_sensor_history"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_sm"
+                android:background="@drawable/bg_section_box"
+                android:nestedScrollingEnabled="false"
+                android:padding="@dimen/spacing_md" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_lg"
+                android:layout_marginStart="@dimen/spacing_sm"
+                android:text="이벤트 이력"
+                android:textAppearance="@style/TextAppearance.PlantMate.SectionLabel" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/recycler_event_history"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_sm"
+                android:background="@drawable/bg_section_box"
+                android:nestedScrollingEnabled="false"
+                android:padding="@dimen/spacing_md" />
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+
+</androidx.constraintlayout.widget.ConstraintLayout>
