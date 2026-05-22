@@ -55,10 +55,12 @@ public class PlantRepository {
         validatePlant(plant);
         String request = String.format(
                 Locale.US,
-                "ADD_PLANT %d %s %s %.2f %.2f %.2f %.2f %d %d %d %d",
+                "ADD_PLANT %d %s %s %s %s %.2f %.2f %.2f %.2f %d %d %d %d",
                 userId,
                 plant.getName(),
                 plant.getType(),
+                formatNullableDouble(plant.getPositionX()),
+                formatNullableDouble(plant.getPositionY()),
                 plant.getTempMin(),
                 plant.getTempMax(),
                 plant.getHumiMin(),
@@ -79,11 +81,13 @@ public class PlantRepository {
 
         String request = String.format(
                 Locale.US,
-                "EDIT_PLANT %d %d %s %s %.2f %.2f %.2f %.2f %d %d %d %d",
+                "EDIT_PLANT %d %d %s %s %s %s %.2f %.2f %.2f %.2f %d %d %d %d",
                 plant.getPlantId(),
                 userId,
                 plant.getName(),
                 plant.getType(),
+                formatNullableDouble(plant.getPositionX()),
+                formatNullableDouble(plant.getPositionY()),
                 plant.getTempMin(),
                 plant.getTempMax(),
                 plant.getHumiMin(),
@@ -251,5 +255,12 @@ public class PlantRepository {
             builder.append(lines.get(i));
         }
         return builder.toString();
+    }
+
+    private String formatNullableDouble(Double value) {
+        if (value == null) {
+            return "null";
+        }
+        return String.format(Locale.US, "%.2f", value);
     }
 }

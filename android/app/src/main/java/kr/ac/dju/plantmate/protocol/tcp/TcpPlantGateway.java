@@ -1,6 +1,7 @@
 package kr.ac.dju.plantmate.protocol.tcp;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 
 import kr.ac.dju.plantmate.model.MonitorSnapshot;
@@ -89,6 +90,16 @@ public class TcpPlantGateway implements PlantGateway {
     @Override
     public void waterPlant(int plantId, int duration) throws Exception {
         repository.waterPlant(plantId, duration);
+    }
+
+    @Override
+    public List<String> loadRobotDevices() throws Exception {
+        return Collections.emptyList();
+    }
+
+    @Override
+    public void setRobotDevice(String deviceId, int plantId) throws Exception {
+        throw new UnsupportedOperationException("MQTT 연결에서만 로봇 장치를 선택할 수 있습니다.");
     }
 
     @Override

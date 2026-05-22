@@ -1,24 +1,40 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:layout_marginBottom="8dp"
-    android:background="@drawable/bg_list_item"
-    android:orientation="vertical"
-    android:padding="12dp">
+    android:layout_height="190dp"
+    android:layout_margin="@dimen/spacing_item"
+    app:cardBackgroundColor="@color/surface_card"
+    app:cardCornerRadius="@dimen/plant_card_radius"
+    app:cardElevation="@dimen/elevation_card"
+    app:strokeColor="@color/plant_stroke"
+    app:strokeWidth="1dp">
 
-    <TextView
-        android:id="@+id/text_plant_title"
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:textColor="@color/text_primary"
-        android:textSize="16sp"
-        android:textStyle="bold" />
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:padding="@dimen/spacing_md">
 
-    <TextView
-        android:id="@+id/text_plant_subtitle"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:textColor="@color/text_secondary" />
-</LinearLayout>
+        <View
+            android:id="@+id/view_plant_image_placeholder"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_plant_placeholder" />
+
+        <TextView
+            android:id="@+id/text_plant_name"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_sm"
+            android:ellipsize="end"
+            android:gravity="center"
+            android:maxLines="1"
+            android:minHeight="36dp"
+            android:textAppearance="@style/TextAppearance.PlantMate.SectionLabel"
+            android:textStyle="bold" />
+
+    </LinearLayout>
+
+</com.google.android.material.card.MaterialCardView>

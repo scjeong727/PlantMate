@@ -14,13 +14,8 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 
-import com.google.android.material.bottomnavigation.BottomNavigationView;
-
 import kr.ac.dju.plantmate.service.PlantClientService;
-import kr.ac.dju.plantmate.ui.MonitorFragment;
 import kr.ac.dju.plantmate.ui.PlantFragment;
-import kr.ac.dju.plantmate.ui.RobotFragment;
-import kr.ac.dju.plantmate.ui.WaterFragment;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -55,10 +50,9 @@ public class MainActivity extends AppCompatActivity {
         textCurrentScreen = findViewById(R.id.text_current_screen);
 
         bindService(new Intent(this, PlantClientService.class), connection, Context.BIND_AUTO_CREATE);
-        setupBottomNavigation();
 
         if (savedInstanceState == null) {
-            updateHeaderTitle(R.id.menu_plant);
+            updateHeaderTitle();
             openFragment(new PlantFragment());
         }
     }
@@ -84,33 +78,6 @@ public class MainActivity extends AppCompatActivity {
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
     }
 
-    private void setupBottomNavigation() {
-        BottomNavigationView bottomNavigationView = findViewById(R.id.bottom_navigation);
-        bottomNavigationView.setOnItemSelectedListener(item -> {
-            if (item.getItemId() == R.id.menu_plant) {
-                updateHeaderTitle(R.id.menu_plant);
-                openFragment(new PlantFragment());
-                return true;
-            }
-            if (item.getItemId() == R.id.menu_monitor) {
-                updateHeaderTitle(R.id.menu_monitor);
-                openFragment(new MonitorFragment());
-                return true;
-            }
-            if (item.getItemId() == R.id.menu_water) {
-                updateHeaderTitle(R.id.menu_water);
-                openFragment(new WaterFragment());
-                return true;
-            }
-            if (item.getItemId() == R.id.menu_robot) {
-                updateHeaderTitle(R.id.menu_robot);
-                openFragment(new RobotFragment());
-                return true;
-            }
-            return false;
-        });
-    }
-
     private void openFragment(Fragment fragment) {
         getSupportFragmentManager()
                 .beginTransaction()
@@ -132,28 +99,10 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void updateHeaderTitle(int menuId) {
+    private void updateHeaderTitle() {
         if (textCurrentScreen == null) {
             return;
         }
-
-        if (menuId == R.id.menu_plant) {
-            textCurrentScreen.setText("식물 편집");
-            return;
-        }
-
-        if (menuId == R.id.menu_monitor) {
-            textCurrentScreen.setText("식물 현황");
-            return;
-        }
-
-        if (menuId == R.id.menu_water) {
-            textCurrentScreen.setText("급수 시스템");
-            return;
-        }
-
-        if (menuId == R.id.menu_robot) {
-            textCurrentScreen.setText("로봇 제어");
-        }
+        textCurrentScreen.setText("식물");
     }
 }

@@ -180,6 +180,21 @@ public class PlantClientService extends Service {
         });
     }
 
+    public void loadRobotDevices(ServiceCallback<List<String>> callback) {
+        runTask(callback, () -> {
+            requireLogin();
+            return gateway.loadRobotDevices();
+        });
+    }
+
+    public void setRobotDevice(String deviceId, int plantId, ServiceCallback<String> callback) {
+        runTask(callback, () -> {
+            requireLogin();
+            gateway.setRobotDevice(deviceId, plantId);
+            return "로봇 장치 연결 완료";
+        });
+    }
+
     public void robotCommand(int plantId, String action, String detail, ServiceCallback<String> callback) {
         runTask(callback, () -> {
             requireLogin();

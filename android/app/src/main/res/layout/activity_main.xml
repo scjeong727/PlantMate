@@ -3,70 +3,59 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/bg_app_gradient">
+    android:background="@drawable/bg_screen_plant">
 
-    <LinearLayout
+    <com.google.android.material.card.MaterialCardView
         android:id="@+id/top_header"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginHorizontal="16dp"
-        android:layout_marginTop="12dp"
-        android:background="@drawable/bg_surface_card"
-        android:elevation="4dp"
-        android:gravity="center"
-        android:orientation="vertical"
-        android:paddingVertical="12dp"
+        android:layout_marginHorizontal="@dimen/spacing_screen"
+        android:layout_marginTop="@dimen/spacing_screen"
+        app:cardBackgroundColor="@android:color/transparent"
+        app:cardCornerRadius="@dimen/corner_radius_md"
+        app:cardElevation="@dimen/elevation_card_low"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent">
+        app:layout_constraintTop_toTopOf="parent"
+        app:strokeColor="@color/stroke_neutral"
+        app:strokeWidth="1dp">
 
-        <TextView
-            android:layout_width="wrap_content"
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="PlantMate"
-            android:textColor="@color/text_secondary"
-            android:textSize="12sp" />
+            android:background="@drawable/bg_main_header"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:paddingHorizontal="@dimen/spacing_lg"
+            android:paddingVertical="@dimen/spacing_md">
 
-        <TextView
-            android:id="@+id/text_current_screen"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
-            android:text="현재 선택 화면"
-            android:textColor="@color/text_primary"
-            android:textSize="18sp"
-            android:textStyle="bold" />
-    </LinearLayout>
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="PlantMate"
+                android:textAppearance="@style/TextAppearance.PlantMate.BrandCaption"
+                android:textColor="@color/text_primary" />
+
+            <TextView
+                android:id="@+id/text_current_screen"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_sm"
+                android:text="현재 선택 화면"
+                android:textAppearance="@style/TextAppearance.PlantMate.SectionTitle"
+                android:textColor="@color/text_primary" />
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
 
     <androidx.fragment.app.FragmentContainerView
         android:id="@+id/fragment_container"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:layout_marginHorizontal="16dp"
-        android:layout_marginTop="12dp"
-        android:layout_marginBottom="10dp"
-        android:background="@drawable/bg_surface_card"
-        android:elevation="4dp"
-        app:layout_constraintBottom_toTopOf="@id/bottom_navigation"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/top_header" />
-
-    <com.google.android.material.bottomnavigation.BottomNavigationView
-        android:id="@+id/bottom_navigation"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginHorizontal="16dp"
-        android:layout_marginBottom="12dp"
-        android:background="@drawable/bg_surface_card"
-        android:elevation="8dp"
-        app:itemActiveIndicatorStyle="@style/Widget.PlantMate.BottomNavigation.ActiveIndicator"
-        app:itemIconTint="@color/bottom_nav_colors"
-        app:itemTextColor="@color/bottom_nav_colors"
-        app:labelVisibilityMode="labeled"
+        android:layout_marginTop="@dimen/spacing_md"
+        android:background="@color/material_dynamic_primary80"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:menu="@menu/menu_bottom_navigation" />
+        app:layout_constraintTop_toBottomOf="@id/top_header" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
