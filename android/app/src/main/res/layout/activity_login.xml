@@ -3,181 +3,150 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/bg_screen_login"
-    android:padding="@dimen/spacing_screen">
+    android:background="@drawable/bg_app_gradient">
 
-    <com.google.android.material.card.MaterialCardView
+    <LinearLayout
         android:id="@+id/login_card"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginHorizontal="@dimen/spacing_xl"
-        android:layout_marginTop="@dimen/spacing_xl"
-        app:cardBackgroundColor="@color/surface_card"
-        app:cardCornerRadius="@dimen/corner_radius_md"
-        app:cardElevation="@dimen/elevation_card"
+        android:layout_margin="24dp"
+        android:background="@drawable/bg_surface_card"
+        android:elevation="6dp"
+        android:orientation="vertical"
+        android:padding="24dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.42"
-        app:strokeColor="@color/stroke_neutral"
-        app:strokeWidth="1dp">
+        app:layout_constraintTop_toTopOf="parent">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:text="식물관리 앱"
+            android:textColor="@color/text_primary"
+            android:textSize="26sp"
+            android:textStyle="bold" />
 
         <LinearLayout
+            android:id="@+id/auth_panel"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
-            <LinearLayout
+            <EditText
+                android:id="@+id/edit_login_id"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:background="@drawable/bg_login_header"
-                android:gravity="center"
-                android:orientation="vertical"
-                android:paddingHorizontal="@dimen/spacing_xl"
-                android:paddingVertical="@dimen/spacing_xl">
+                android:layout_height="52dp"
+                android:layout_marginTop="24dp"
+                android:background="@drawable/bg_input"
+                android:gravity="center_vertical"
+                android:hint="아이디"
+                android:inputType="text"
+                android:paddingHorizontal="16dp"
+                android:textColor="@color/text_primary"
+                android:textColorHint="@color/text_hint" />
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="PlantMate"
-                    android:textAppearance="@style/TextAppearance.PlantMate.BrandCaption"
-                    android:textColor="@color/white" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/spacing_sm"
-                    android:text="스마트 식물 관리"
-                    android:textAppearance="@style/TextAppearance.PlantMate.Headline"
-                    android:textColor="@color/white" />
-            </LinearLayout>
-
-            <LinearLayout
+            <EditText
+                android:id="@+id/edit_login_pw"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="@dimen/spacing_xl">
+                android:layout_height="52dp"
+                android:layout_marginTop="12dp"
+                android:background="@drawable/bg_input"
+                android:gravity="center_vertical"
+                android:hint="비밀번호"
+                android:inputType="textPassword"
+                android:paddingHorizontal="16dp"
+                android:textColor="@color/text_primary"
+                android:textColorHint="@color/text_hint" />
 
-                <LinearLayout
-                    android:id="@+id/auth_panel"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical">
+            <Button
+                android:id="@+id/btn_login"
+                android:layout_width="match_parent"
+                android:layout_height="54dp"
+                android:layout_marginTop="28dp"
+                android:background="@drawable/bg_primary_button"
+                android:text="로그인"
+                android:textAllCaps="false"
+                android:textColor="@color/white"
+                android:textStyle="bold" />
 
-                    <EditText
-                        android:id="@+id/edit_login_id"
-                        android:layout_width="match_parent"
-                        android:layout_height="@dimen/input_height"
-                        android:background="@drawable/bg_input"
-                        android:gravity="center_vertical"
-                        android:hint="아이디"
-                        android:inputType="text"
-                        android:paddingHorizontal="@dimen/spacing_lg"
-                        android:textAppearance="@style/TextAppearance.PlantMate.BodyMedium"
-                        android:textColorHint="@color/text_hint" />
-
-                    <EditText
-                        android:id="@+id/edit_login_pw"
-                        android:layout_width="match_parent"
-                        android:layout_height="@dimen/input_height"
-                        android:layout_marginTop="@dimen/spacing_md"
-                        android:background="@drawable/bg_input"
-                        android:gravity="center_vertical"
-                        android:hint="비밀번호"
-                        android:inputType="textPassword"
-                        android:paddingHorizontal="@dimen/spacing_lg"
-                        android:textAppearance="@style/TextAppearance.PlantMate.BodyMedium"
-                        android:textColorHint="@color/text_hint" />
-
-                    <Button
-                        android:id="@+id/btn_login"
-                        android:layout_width="match_parent"
-                        android:layout_height="@dimen/button_height"
-                        android:layout_marginTop="@dimen/spacing_xl"
-                        android:background="@drawable/bg_primary_button"
-                        android:text="로그인"
-                        android:textAllCaps="false"
-                        android:textColor="@color/white"
-                        android:textStyle="bold" />
-
-                    <Button
-                        android:id="@+id/btn_signup"
-                        android:layout_width="match_parent"
-                        android:layout_height="@dimen/button_height"
-                        android:layout_marginTop="@dimen/spacing_md"
-                        android:background="@drawable/bg_secondary_button"
-                        android:text="회원가입"
-                        android:textAllCaps="false"
-                        android:textColor="@color/navy_primary"
-                        android:textColorLink="#160202"
-                        android:textStyle="bold" />
-                </LinearLayout>
-
-                <LinearLayout
-                    android:id="@+id/server_panel"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:visibility="gone">
-
-                    <TextView
-                        android:id="@+id/text_server_title"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:gravity="center"
-                        android:text="서버 설정"
-                        android:textAppearance="@style/TextAppearance.PlantMate.SectionTitle" />
-
-                    <EditText
-                        android:id="@+id/edit_host"
-                        android:layout_width="match_parent"
-                        android:layout_height="@dimen/input_height"
-                        android:layout_marginTop="@dimen/spacing_lg"
-                        android:background="@drawable/bg_input"
-                        android:gravity="center_vertical"
-                        android:hint="서버 IP"
-                        android:inputType="text"
-                        android:paddingHorizontal="@dimen/spacing_lg"
-                        android:textAppearance="@style/TextAppearance.PlantMate.BodyMedium"
-                        android:textColorHint="@color/text_hint" />
-
-                    <Button
-                        android:id="@+id/btn_server_proceed"
-                        android:layout_width="match_parent"
-                        android:layout_height="@dimen/button_height"
-                        android:layout_marginTop="@dimen/spacing_lg"
-                        android:background="@drawable/bg_primary_button"
-                        android:text="계속"
-                        android:textAllCaps="false"
-                        android:textColor="@color/white"
-                        android:textStyle="bold" />
-
-                    <Button
-                        android:id="@+id/btn_server_back"
-                        android:layout_width="match_parent"
-                        android:layout_height="@dimen/button_height"
-                        android:layout_marginTop="@dimen/spacing_md"
-                        android:background="@drawable/bg_secondary_button"
-                        android:text="뒤로"
-                        android:textAllCaps="false"
-                        android:textColor="@color/navy_primary"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        android:id="@+id/text_server_status"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="@dimen/spacing_lg"
-                        android:background="@drawable/bg_status_box"
-                        android:gravity="center"
-                        android:paddingVertical="@dimen/spacing_lg"
-                        android:text="서버 상태: 연결 안 됨"
-                        android:textAppearance="@style/TextAppearance.PlantMate.BodyMedium"
-                        android:textStyle="bold" />
-                </LinearLayout>
-            </LinearLayout>
+            <Button
+                android:id="@+id/btn_signup"
+                android:layout_width="match_parent"
+                android:layout_height="54dp"
+                android:layout_marginTop="12dp"
+                android:background="@drawable/bg_secondary_button"
+                android:text="회원가입"
+                android:textAllCaps="false"
+                android:textColor="@color/white"
+                android:textStyle="bold" />
         </LinearLayout>
-    </com.google.android.material.card.MaterialCardView>
+
+        <LinearLayout
+            android:id="@+id/server_panel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/text_server_title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:gravity="center"
+                android:text="서버 설정"
+                android:textColor="@color/text_secondary"
+                android:textStyle="bold" />
+
+            <EditText
+                android:id="@+id/edit_host"
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:layout_marginTop="16dp"
+                android:background="@drawable/bg_input"
+                android:gravity="center_vertical"
+                android:hint="서버 IP"
+                android:inputType="text"
+                android:paddingHorizontal="16dp"
+                android:textColor="@color/text_primary"
+                android:textColorHint="@color/text_hint" />
+
+            <Button
+                android:id="@+id/btn_server_proceed"
+                android:layout_width="match_parent"
+                android:layout_height="54dp"
+                android:layout_marginTop="18dp"
+                android:background="@drawable/bg_primary_button"
+                android:text="계속"
+                android:textAllCaps="false"
+                android:textColor="@color/white"
+                android:textStyle="bold" />
+
+            <Button
+                android:id="@+id/btn_server_back"
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:layout_marginTop="10dp"
+                android:background="@drawable/bg_secondary_button"
+                android:text="뒤로"
+                android:textAllCaps="false"
+                android:textColor="@color/white"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/text_server_status"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="18dp"
+                android:background="@drawable/bg_status_box"
+                android:gravity="center"
+                android:paddingVertical="14dp"
+                android:text="서버 상태: 연결 안 됨"
+                android:textColor="@color/text_primary"
+                android:textStyle="bold" />
+        </LinearLayout>
+    </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

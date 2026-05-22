@@ -3,9 +3,7 @@
     android:id="@+id/text_line"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginBottom="@dimen/spacing_sm"
+    android:layout_marginBottom="8dp"
     android:background="@drawable/bg_list_item"
-    android:lineSpacingExtra="2dp"
-    android:paddingHorizontal="@dimen/spacing_md"
-    android:paddingVertical="@dimen/spacing_md"
-    android:textAppearance="@style/TextAppearance.PlantMate.BodyMedium" />
+    android:padding="12dp"
+    android:textColor="@color/text_primary" />

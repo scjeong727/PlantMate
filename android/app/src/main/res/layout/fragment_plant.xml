@@ -3,16 +3,14 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/bg_screen_plant">
+    android:padding="12dp">
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recycler_plants"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:background="@android:color/transparent"
         android:clipToPadding="false"
-        android:padding="@dimen/spacing_item"
-        android:scrollbars="vertical"
+        android:padding="2dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -22,9 +20,8 @@
         android:id="@+id/plant_detail_panel"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:background="@drawable/bg_screen_plant"
         android:orientation="vertical"
-        android:padding="@dimen/spacing_screen"
+        android:padding="8dp"
         android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
@@ -35,9 +32,7 @@
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
-            android:clipToPadding="false"
-            android:fillViewport="false"
-            android:paddingBottom="@dimen/spacing_card">
+            android:fillViewport="false">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -46,577 +41,463 @@
 
                 <Button
                     android:id="@+id/btn_plant_detail_back"
-                    android:layout_width="wrap_content"
-                    android:layout_height="@dimen/button_height"
-                    android:layout_marginBottom="@dimen/spacing_item"
-                    android:background="@drawable/bg_plant_detail_back"
-                    android:backgroundTint="@null"
-                    android:minWidth="96dp"
-                    android:paddingHorizontal="20dp"
+                    android:layout_width="96dp"
+                    android:layout_height="44dp"
+                    android:background="@drawable/bg_secondary_button"
                     android:text="뒤로"
                     android:textAllCaps="false"
-                    android:textColor="@color/text_primary"
+                    android:textColor="@color/white"
                     android:textStyle="bold" />
 
-                <com.google.android.material.card.MaterialCardView
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="190dp"
+                    android:layout_marginTop="12dp"
+                    android:background="@drawable/bg_plant_placeholder" />
+
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    app:cardBackgroundColor="@color/surface_card"
-                    app:cardCornerRadius="@dimen/plant_section_radius"
-                    app:cardElevation="@dimen/elevation_card"
-                    app:strokeColor="@color/plant_stroke"
-                    app:strokeWidth="1dp">
+                    android:layout_marginTop="14dp"
+                    android:background="@drawable/bg_section_box"
+                    android:orientation="vertical"
+                    android:padding="16dp">
 
-                    <View
+                    <TextView
+                        android:id="@+id/text_detail_name"
                         android:layout_width="match_parent"
-                        android:layout_height="@dimen/plant_hero_height"
-                        android:background="@drawable/bg_plant_placeholder" />
+                        android:layout_height="wrap_content"
+                        android:gravity="center"
+                        android:textColor="@color/text_primary"
+                        android:textSize="24sp"
+                        android:textStyle="bold" />
 
-                </com.google.android.material.card.MaterialCardView>
+                    <TextView
+                        android:id="@+id/text_detail_type"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:gravity="center"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="15sp" />
 
-                <com.google.android.material.card.MaterialCardView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/spacing_section"
-                    app:cardBackgroundColor="@color/surface_card"
-                    app:cardCornerRadius="@dimen/plant_section_radius"
-                    app:cardElevation="@dimen/elevation_card"
-                    app:strokeColor="@color/plant_stroke"
-                    app:strokeWidth="1dp">
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="14dp"
+                        android:text="좌표"
+                        android:textColor="@color/text_primary"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
 
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:orientation="vertical"
-                        android:padding="@dimen/spacing_section">
-
-                        <TextView
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:gravity="center"
-                            android:text="식물 정보"
-                            android:textAppearance="@style/TextAppearance.PlantMate.SectionLabel" />
+                        android:layout_marginTop="8dp"
+                        android:orientation="horizontal"
+                        android:weightSum="2">
 
                         <EditText
-                            android:id="@+id/text_detail_name"
-                            android:layout_width="match_parent"
-                            android:layout_height="@dimen/plant_input_height"
-                            android:layout_marginTop="@dimen/spacing_card"
-                            android:background="@drawable/bg_plant_input"
+                            android:id="@+id/edit_detail_position_x"
+                            android:layout_width="0dp"
+                            android:layout_height="52dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/bg_input"
                             android:gravity="center"
-                            android:hint="식물 이름"
-                            android:importantForAutofill="no"
-                            android:inputType="text"
-                            android:textAppearance="@style/TextAppearance.PlantMate.DetailName"
+                            android:hint="X"
+                            android:inputType="numberDecimal|numberSigned"
                             android:textColor="@color/text_primary"
                             android:textColorHint="@color/text_hint" />
 
-                        <EditText
-                            android:id="@+id/text_detail_type"
-                            android:layout_width="match_parent"
-                            android:layout_height="@dimen/plant_input_height"
-                            android:layout_marginTop="@dimen/spacing_item"
-                            android:background="@drawable/bg_plant_input"
-                            android:gravity="center"
-                            android:hint="식물 종류 (관엽식물, 다육식물 등)"
-                            android:importantForAutofill="no"
-                            android:inputType="text"
-                            android:textAppearance="@style/TextAppearance.PlantMate.DetailSubtitle"
-                            android:textColor="@color/text_secondary"
-                            android:textColorHint="@color/text_hint" />
-
-                        <View
-                            android:layout_width="match_parent"
-                            android:layout_height="1dp"
-                            android:layout_marginTop="@dimen/spacing_section"
-                            android:layout_marginBottom="@dimen/spacing_card"
-                            android:background="@color/plant_stroke" />
-
                         <TextView
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:text="좌표"
-                            android:textAppearance="@style/TextAppearance.PlantMate.SectionTitle" />
+                            android:layout_width="28dp"
+                            android:layout_height="52dp"
+                            android:gravity="center"
+                            android:text=","
+                            android:textColor="@color/text_primary"
+                            android:textSize="18sp"
+                            android:textStyle="bold" />
 
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="@dimen/spacing_card"
-                            android:gravity="center_vertical"
-                            android:orientation="horizontal">
-
-                            <EditText
-                                android:id="@+id/edit_detail_position_x"
-                                android:layout_width="0dp"
-                                android:layout_height="@dimen/plant_input_height"
-                                android:layout_weight="1"
-                                android:background="@drawable/bg_plant_input"
-                                android:gravity="center"
-                                android:hint="X"
-                                android:inputType="numberDecimal|numberSigned"
-                                android:textColor="@color/text_primary"
-                                android:textColorHint="@color/text_hint" />
-
-                            <TextView
-                                android:layout_width="32dp"
-                                android:layout_height="@dimen/plant_input_height"
-                                android:gravity="center"
-                                android:text=","
-                                android:textColor="@color/text_secondary"
-                                android:textSize="18sp"
-                                android:textStyle="bold" />
-
-                            <EditText
-                                android:id="@+id/edit_detail_position_y"
-                                android:layout_width="0dp"
-                                android:layout_height="@dimen/plant_input_height"
-                                android:layout_weight="1"
-                                android:background="@drawable/bg_plant_input"
-                                android:gravity="center"
-                                android:hint="Y"
-                                android:inputType="numberDecimal|numberSigned"
-                                android:textColor="@color/text_primary"
-                                android:textColorHint="@color/text_hint" />
-                        </LinearLayout>
+                        <EditText
+                            android:id="@+id/edit_detail_position_y"
+                            android:layout_width="0dp"
+                            android:layout_height="52dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/bg_input"
+                            android:gravity="center"
+                            android:hint="Y"
+                            android:inputType="numberDecimal|numberSigned"
+                            android:textColor="@color/text_primary"
+                            android:textColorHint="@color/text_hint" />
                     </LinearLayout>
-                </com.google.android.material.card.MaterialCardView>
+                </LinearLayout>
 
                 <FrameLayout
                     android:id="@+id/detail_content_container"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/spacing_section">
+                    android:layout_marginTop="14dp"
+                    android:paddingBottom="10dp">
 
-                    <com.google.android.material.card.MaterialCardView
+                    <LinearLayout
                         android:id="@+id/panel_detail_info"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        app:cardBackgroundColor="@color/surface_card"
-                        app:cardCornerRadius="@dimen/plant_section_radius"
-                        app:cardElevation="@dimen/elevation_card"
-                        app:strokeColor="@color/plant_stroke"
-                        app:strokeWidth="1dp">
+                android:background="@drawable/bg_section_box"
+                android:orientation="vertical"
+                android:padding="18dp">
 
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:orientation="vertical"
-                            android:padding="@dimen/spacing_section">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
 
-                            <TextView
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:text="환경 설정"
-                                android:textAppearance="@style/TextAppearance.PlantMate.SectionTitle" />
+                    <TextView
+                        android:layout_width="70dp"
+                        android:layout_height="wrap_content"
+                        android:text="온도:"
+                        android:textColor="@color/text_primary"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
 
-                            <LinearLayout
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="@dimen/spacing_card"
-                                android:gravity="center_vertical"
-                                android:minHeight="@dimen/plant_input_height"
-                                android:orientation="horizontal">
+                    <EditText
+                        android:id="@+id/edit_detail_temp_min"
+                        android:layout_width="0dp"
+                        android:layout_height="52dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/bg_input"
+                        android:gravity="center"
+                        android:hint="최소"
+                        android:inputType="numberDecimal|numberSigned"
+                        android:textColor="@color/text_primary"
+                        android:textColorHint="@color/text_hint" />
 
-                                <TextView
-                                    android:layout_width="72dp"
-                                    android:layout_height="wrap_content"
-                                    android:text="온도:"
-                                    android:textAppearance="@style/TextAppearance.PlantMate.FieldLabel" />
+                    <TextView
+                        android:layout_width="28dp"
+                        android:layout_height="52dp"
+                        android:gravity="center"
+                        android:text="~"
+                        android:textColor="@color/text_primary"
+                        android:textSize="18sp"
+                        android:textStyle="bold" />
 
-                                <EditText
-                                    android:id="@+id/edit_detail_temp_min"
-                                    android:layout_width="0dp"
-                                    android:layout_height="@dimen/plant_input_height"
-                                    android:layout_weight="1"
-                                    android:background="@drawable/bg_plant_input"
-                                    android:gravity="center"
-                                    android:hint="최소"
-                                    android:inputType="numberDecimal|numberSigned"
-                                    android:textColor="@color/text_primary"
-                                    android:textColorHint="@color/text_hint" />
+                    <EditText
+                        android:id="@+id/edit_detail_temp_max"
+                        android:layout_width="0dp"
+                        android:layout_height="52dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/bg_input"
+                        android:gravity="center"
+                        android:hint="최대"
+                        android:inputType="numberDecimal|numberSigned"
+                        android:textColor="@color/text_primary"
+                        android:textColorHint="@color/text_hint" />
+                </LinearLayout>
 
-                                <TextView
-                                    android:layout_width="28dp"
-                                    android:layout_height="@dimen/plant_input_height"
-                                    android:gravity="center"
-                                    android:text="~"
-                                    android:textColor="@color/text_secondary"
-                                    android:textSize="18sp"
-                                    android:textStyle="bold" />
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:layout_marginTop="10dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
 
-                                <EditText
-                                    android:id="@+id/edit_detail_temp_max"
-                                    android:layout_width="0dp"
-                                    android:layout_height="@dimen/plant_input_height"
-                                    android:layout_weight="1"
-                                    android:background="@drawable/bg_plant_input"
-                                    android:gravity="center"
-                                    android:hint="최대"
-                                    android:inputType="numberDecimal|numberSigned"
-                                    android:textColor="@color/text_primary"
-                                    android:textColorHint="@color/text_hint" />
-                            </LinearLayout>
+                    <TextView
+                        android:layout_width="70dp"
+                        android:layout_height="wrap_content"
+                        android:text="습도:"
+                        android:textColor="@color/text_primary"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
 
-                            <LinearLayout
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="@dimen/spacing_card"
-                                android:gravity="center_vertical"
-                                android:minHeight="@dimen/plant_input_height"
-                                android:orientation="horizontal">
+                    <EditText
+                        android:id="@+id/edit_detail_humi_min"
+                        android:layout_width="0dp"
+                        android:layout_height="52dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/bg_input"
+                        android:gravity="center"
+                        android:hint="최소"
+                        android:inputType="numberDecimal|numberSigned"
+                        android:textColor="@color/text_primary"
+                        android:textColorHint="@color/text_hint" />
 
-                                <TextView
-                                    android:layout_width="72dp"
-                                    android:layout_height="wrap_content"
-                                    android:text="습도:"
-                                    android:textAppearance="@style/TextAppearance.PlantMate.FieldLabel" />
+                    <TextView
+                        android:layout_width="28dp"
+                        android:layout_height="52dp"
+                        android:gravity="center"
+                        android:text="~"
+                        android:textColor="@color/text_primary"
+                        android:textSize="18sp"
+                        android:textStyle="bold" />
 
-                                <EditText
-                                    android:id="@+id/edit_detail_humi_min"
-                                    android:layout_width="0dp"
-                                    android:layout_height="@dimen/plant_input_height"
-                                    android:layout_weight="1"
-                                    android:background="@drawable/bg_plant_input"
-                                    android:gravity="center"
-                                    android:hint="최소"
-                                    android:inputType="numberDecimal|numberSigned"
-                                    android:textColor="@color/text_primary"
-                                    android:textColorHint="@color/text_hint" />
+                    <EditText
+                        android:id="@+id/edit_detail_humi_max"
+                        android:layout_width="0dp"
+                        android:layout_height="52dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/bg_input"
+                        android:gravity="center"
+                        android:hint="최대"
+                        android:inputType="numberDecimal|numberSigned"
+                        android:textColor="@color/text_primary"
+                        android:textColorHint="@color/text_hint" />
+                </LinearLayout>
 
-                                <TextView
-                                    android:layout_width="28dp"
-                                    android:layout_height="@dimen/plant_input_height"
-                                    android:gravity="center"
-                                    android:text="~"
-                                    android:textColor="@color/text_secondary"
-                                    android:textSize="18sp"
-                                    android:textStyle="bold" />
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:layout_marginTop="10dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
 
-                                <EditText
-                                    android:id="@+id/edit_detail_humi_max"
-                                    android:layout_width="0dp"
-                                    android:layout_height="@dimen/plant_input_height"
-                                    android:layout_weight="1"
-                                    android:background="@drawable/bg_plant_input"
-                                    android:gravity="center"
-                                    android:hint="최대"
-                                    android:inputType="numberDecimal|numberSigned"
-                                    android:textColor="@color/text_primary"
-                                    android:textColorHint="@color/text_hint" />
-                            </LinearLayout>
+                    <TextView
+                        android:layout_width="70dp"
+                        android:layout_height="wrap_content"
+                        android:text="조도:"
+                        android:textColor="@color/text_primary"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
 
-                            <LinearLayout
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="@dimen/spacing_card"
-                                android:gravity="center_vertical"
-                                android:minHeight="@dimen/plant_input_height"
-                                android:orientation="horizontal">
+                    <EditText
+                        android:id="@+id/edit_detail_light_min"
+                        android:layout_width="0dp"
+                        android:layout_height="52dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/bg_input"
+                        android:gravity="center"
+                        android:hint="최소"
+                        android:inputType="number"
+                        android:textColor="@color/text_primary"
+                        android:textColorHint="@color/text_hint" />
 
-                                <TextView
-                                    android:layout_width="72dp"
-                                    android:layout_height="wrap_content"
-                                    android:text="조도:"
-                                    android:textAppearance="@style/TextAppearance.PlantMate.FieldLabel" />
+                    <TextView
+                        android:layout_width="28dp"
+                        android:layout_height="52dp"
+                        android:gravity="center"
+                        android:text="~"
+                        android:textColor="@color/text_primary"
+                        android:textSize="18sp"
+                        android:textStyle="bold" />
 
-                                <EditText
-                                    android:id="@+id/edit_detail_light_min"
-                                    android:layout_width="0dp"
-                                    android:layout_height="@dimen/plant_input_height"
-                                    android:layout_weight="1"
-                                    android:background="@drawable/bg_plant_input"
-                                    android:gravity="center"
-                                    android:hint="최소"
-                                    android:inputType="number"
-                                    android:textColor="@color/text_primary"
-                                    android:textColorHint="@color/text_hint" />
+                    <EditText
+                        android:id="@+id/edit_detail_light_max"
+                        android:layout_width="0dp"
+                        android:layout_height="52dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/bg_input"
+                        android:gravity="center"
+                        android:hint="최대"
+                        android:inputType="number"
+                        android:textColor="@color/text_primary"
+                        android:textColorHint="@color/text_hint" />
+                </LinearLayout>
 
-                                <TextView
-                                    android:layout_width="28dp"
-                                    android:layout_height="@dimen/plant_input_height"
-                                    android:gravity="center"
-                                    android:text="~"
-                                    android:textColor="@color/text_secondary"
-                                    android:textSize="18sp"
-                                    android:textStyle="bold" />
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:layout_marginTop="10dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
 
-                                <EditText
-                                    android:id="@+id/edit_detail_light_max"
-                                    android:layout_width="0dp"
-                                    android:layout_height="@dimen/plant_input_height"
-                                    android:layout_weight="1"
-                                    android:background="@drawable/bg_plant_input"
-                                    android:gravity="center"
-                                    android:hint="최대"
-                                    android:inputType="number"
-                                    android:textColor="@color/text_primary"
-                                    android:textColorHint="@color/text_hint" />
-                            </LinearLayout>
+                    <TextView
+                        android:layout_width="70dp"
+                        android:layout_height="wrap_content"
+                        android:text="토양습도:"
+                        android:textColor="@color/text_primary"
+                        android:textSize="15sp"
+                        android:textStyle="bold" />
 
-                            <LinearLayout
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="@dimen/spacing_card"
-                                android:gravity="center_vertical"
-                                android:minHeight="@dimen/plant_input_height"
-                                android:orientation="horizontal">
+                    <EditText
+                        android:id="@+id/edit_detail_soil_min"
+                        android:layout_width="0dp"
+                        android:layout_height="52dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/bg_input"
+                        android:gravity="center"
+                        android:hint="최소"
+                        android:inputType="number"
+                        android:textColor="@color/text_primary"
+                        android:textColorHint="@color/text_hint" />
 
-                                <TextView
-                                    android:layout_width="72dp"
-                                    android:layout_height="wrap_content"
-                                    android:text="토양습도:"
-                                    android:textAppearance="@style/TextAppearance.PlantMate.FieldLabel" />
+                    <TextView
+                        android:layout_width="28dp"
+                        android:layout_height="52dp"
+                        android:gravity="center"
+                        android:text="~"
+                        android:textColor="@color/text_primary"
+                        android:textSize="18sp"
+                        android:textStyle="bold" />
 
-                                <EditText
-                                    android:id="@+id/edit_detail_soil_min"
-                                    android:layout_width="0dp"
-                                    android:layout_height="@dimen/plant_input_height"
-                                    android:layout_weight="1"
-                                    android:background="@drawable/bg_plant_input"
-                                    android:gravity="center"
-                                    android:hint="최소"
-                                    android:inputType="number"
-                                    android:textColor="@color/text_primary"
-                                    android:textColorHint="@color/text_hint" />
+                    <EditText
+                        android:id="@+id/edit_detail_soil_max"
+                        android:layout_width="0dp"
+                        android:layout_height="52dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/bg_input"
+                        android:gravity="center"
+                        android:hint="최대"
+                        android:inputType="number"
+                        android:textColor="@color/text_primary"
+                        android:textColorHint="@color/text_hint" />
+                </LinearLayout>
+            </LinearLayout>
 
-                                <TextView
-                                    android:layout_width="28dp"
-                                    android:layout_height="@dimen/plant_input_height"
-                                    android:gravity="center"
-                                    android:text="~"
-                                    android:textColor="@color/text_secondary"
-                                    android:textSize="18sp"
-                                    android:textStyle="bold" />
-
-                                <EditText
-                                    android:id="@+id/edit_detail_soil_max"
-                                    android:layout_width="0dp"
-                                    android:layout_height="@dimen/plant_input_height"
-                                    android:layout_weight="1"
-                                    android:background="@drawable/bg_plant_input"
-                                    android:gravity="center"
-                                    android:hint="최대"
-                                    android:inputType="number"
-                                    android:textColor="@color/text_primary"
-                                    android:textColorHint="@color/text_hint" />
-                            </LinearLayout>
-                        </LinearLayout>
-                    </com.google.android.material.card.MaterialCardView>
-
-                    <com.google.android.material.card.MaterialCardView
+                    <LinearLayout
                         android:id="@+id/panel_detail_water"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:visibility="gone"
-                        app:cardBackgroundColor="@color/surface_card"
-                        app:cardCornerRadius="@dimen/plant_section_radius"
-                        app:cardElevation="@dimen/elevation_card"
-                        app:strokeColor="@color/plant_stroke"
-                        app:strokeWidth="1dp">
+                android:background="@drawable/bg_section_box"
+                android:orientation="vertical"
+                android:padding="14dp"
+                android:visibility="gone">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="급수 시간"
+                    android:textColor="@color/text_primary"
+                    android:textStyle="bold" />
+
+                <EditText
+                    android:id="@+id/edit_detail_water_duration"
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:layout_marginTop="10dp"
+                    android:background="@drawable/bg_input"
+                    android:gravity="center_vertical"
+                    android:hint="초 단위"
+                    android:inputType="number"
+                    android:paddingHorizontal="16dp"
+                    android:text="5"
+                    android:textColor="@color/text_primary"
+                    android:textColorHint="@color/text_hint" />
+
+                <Button
+                    android:id="@+id/btn_detail_water_run"
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:layout_marginTop="14dp"
+                    android:background="@drawable/bg_primary_button"
+                    android:text="급수 실행"
+                    android:textAllCaps="false"
+                    android:textColor="@color/white"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/panel_detail_robot"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:background="@drawable/bg_section_box"
+                        android:orientation="vertical"
+                        android:padding="14dp"
+                        android:visibility="gone">
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="로봇 선택"
+                            android:textColor="@color/text_primary"
+                            android:textStyle="bold" />
+
+                        <Spinner
+                            android:id="@+id/spinner_detail_robot_device"
+                            android:layout_width="match_parent"
+                            android:layout_height="52dp"
+                            android:layout_marginTop="10dp"
+                            android:background="@drawable/bg_input"
+                            android:paddingHorizontal="12dp" />
 
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:orientation="vertical"
-                            android:padding="@dimen/spacing_section">
-
-                            <TextView
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:text="급수 시간"
-                                android:textAppearance="@style/TextAppearance.PlantMate.SectionTitle" />
-
-                            <EditText
-                                android:id="@+id/edit_detail_water_duration"
-                                android:layout_width="match_parent"
-                                android:layout_height="@dimen/plant_input_height"
-                                android:layout_marginTop="@dimen/spacing_card"
-                                android:background="@drawable/bg_plant_input"
-                                android:gravity="center_vertical"
-                                android:hint="초 단위"
-                                android:inputType="number"
-                                android:paddingHorizontal="16dp"
-                                android:text="5"
-                                android:textColor="@color/text_primary"
-                                android:textColorHint="@color/text_hint" />
+                            android:layout_marginTop="12dp"
+                            android:orientation="horizontal"
+                            android:weightSum="2">
 
                             <Button
-                                android:id="@+id/btn_detail_water_run"
-                                android:layout_width="match_parent"
-                                android:layout_height="@dimen/plant_input_height"
-                                android:layout_marginTop="@dimen/spacing_section"
-                                android:background="@drawable/bg_plant_primary_button"
-                                android:text="급수 실행"
+                                android:id="@+id/btn_detail_robot_refresh"
+                                android:layout_width="0dp"
+                                android:layout_height="52dp"
+                                android:layout_marginEnd="6dp"
+                                android:layout_weight="1"
+                                android:background="@drawable/bg_secondary_button"
+                                android:text="새로고침"
+                                android:textAllCaps="false"
+                                android:textColor="@color/white"
+                                android:textStyle="bold" />
+
+                            <Button
+                                android:id="@+id/btn_detail_robot_bind"
+                                android:layout_width="0dp"
+                                android:layout_height="52dp"
+                                android:layout_marginStart="6dp"
+                                android:layout_weight="1"
+                                android:background="@drawable/bg_primary_button"
+                                android:text="연결"
                                 android:textAllCaps="false"
                                 android:textColor="@color/white"
                                 android:textStyle="bold" />
                         </LinearLayout>
-                    </com.google.android.material.card.MaterialCardView>
-
-                    <com.google.android.material.card.MaterialCardView
-                        android:id="@+id/panel_detail_robot"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:visibility="gone"
-                        app:cardBackgroundColor="@color/surface_card"
-                        app:cardCornerRadius="@dimen/plant_section_radius"
-                        app:cardElevation="@dimen/elevation_card"
-                        app:strokeColor="@color/plant_stroke"
-                        app:strokeWidth="1dp">
 
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:orientation="vertical"
-                            android:padding="@dimen/spacing_section">
+                            android:layout_marginTop="14dp"
+                            android:orientation="horizontal"
+                            android:weightSum="2">
 
-                            <TextView
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:text="로봇 선택"
-                                android:textAppearance="@style/TextAppearance.PlantMate.SectionTitle" />
+                            <Button
+                                android:id="@+id/btn_detail_robot_move"
+                                android:layout_width="0dp"
+                                android:layout_height="52dp"
+                                android:layout_marginEnd="6dp"
+                                android:layout_weight="1"
+                                android:background="@drawable/bg_primary_button"
+                                android:text="이동"
+                                android:textAllCaps="false"
+                                android:textColor="@color/white"
+                                android:textStyle="bold" />
 
-                            <Spinner
-                                android:id="@+id/spinner_detail_robot_device"
-                                android:layout_width="match_parent"
-                                android:layout_height="@dimen/plant_input_height"
-                                android:layout_marginTop="@dimen/spacing_card"
-                                android:background="@drawable/bg_plant_input"
-                                android:paddingHorizontal="12dp" />
-
-                            <LinearLayout
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="@dimen/spacing_card"
-                                android:orientation="horizontal">
-
-                                <Button
-                                    android:id="@+id/btn_detail_robot_refresh"
-                                    android:layout_width="0dp"
-                                    android:layout_height="@dimen/plant_input_height"
-                                    android:layout_marginEnd="@dimen/spacing_item"
-                                    android:layout_weight="1"
-                                    android:background="@drawable/bg_plant_primary_button"
-                                    android:text="새로고침"
-                                    android:textAllCaps="false"
-                                    android:textColor="@color/white"
-                                    android:textStyle="bold" />
-
-                                <Button
-                                    android:id="@+id/btn_detail_robot_bind"
-                                    android:layout_width="0dp"
-                                    android:layout_height="@dimen/plant_input_height"
-                                    android:layout_marginStart="@dimen/spacing_item"
-                                    android:layout_weight="1"
-                                    android:background="@drawable/bg_plant_primary_button"
-                                    android:text="연결"
-                                    android:textAllCaps="false"
-                                    android:textColor="@color/white"
-                                    android:textStyle="bold" />
-                            </LinearLayout>
-
-                            <LinearLayout
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="@dimen/spacing_section"
-                                android:orientation="horizontal">
-
-                                <EditText
-                                    android:id="@+id/edit_detail_robot_linear"
-                                    android:layout_width="0dp"
-                                    android:layout_height="@dimen/plant_input_height"
-                                    android:layout_marginEnd="@dimen/spacing_item"
-                                    android:layout_weight="1"
-                                    android:background="@drawable/bg_plant_input"
-                                    android:gravity="center"
-                                    android:hint="linear"
-                                    android:inputType="numberDecimal|numberSigned"
-                                    android:text="0.200"
-                                    android:textColor="@color/text_primary"
-                                    android:textColorHint="@color/text_hint" />
-
-                                <EditText
-                                    android:id="@+id/edit_detail_robot_angular"
-                                    android:layout_width="0dp"
-                                    android:layout_height="@dimen/plant_input_height"
-                                    android:layout_marginStart="@dimen/spacing_item"
-                                    android:layout_weight="1"
-                                    android:background="@drawable/bg_plant_input"
-                                    android:gravity="center"
-                                    android:hint="angular"
-                                    android:inputType="numberDecimal|numberSigned"
-                                    android:text="0.000"
-                                    android:textColor="@color/text_primary"
-                                    android:textColorHint="@color/text_hint" />
-                            </LinearLayout>
-
-                            <LinearLayout
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="@dimen/spacing_card"
-                                android:orientation="horizontal">
-
-                                <Button
-                                    android:id="@+id/btn_detail_robot_move"
-                                    android:layout_width="0dp"
-                                    android:layout_height="@dimen/plant_input_height"
-                                    android:layout_marginEnd="@dimen/spacing_item"
-                                    android:layout_weight="1"
-                                    android:background="@drawable/bg_plant_primary_button"
-                                    android:text="이동"
-                                    android:textAllCaps="false"
-                                    android:textColor="@color/white"
-                                    android:textStyle="bold" />
-
-                                <Button
-                                    android:id="@+id/btn_detail_robot_stop"
-                                    android:layout_width="0dp"
-                                    android:layout_height="@dimen/plant_input_height"
-                                    android:layout_marginStart="@dimen/spacing_item"
-                                    android:layout_weight="1"
-                                    android:background="@drawable/bg_plant_primary_button"
-                                    android:text="정지"
-                                    android:textAllCaps="false"
-                                    android:textColor="@color/white"
-                                    android:textStyle="bold" />
-                            </LinearLayout>
-
-                            <TextView
-                                android:id="@+id/text_detail_robot_status"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="@dimen/spacing_card"
-                                android:textAppearance="@style/TextAppearance.PlantMate.DetailSubtitle" />
+                            <Button
+                                android:id="@+id/btn_detail_robot_stop"
+                                android:layout_width="0dp"
+                                android:layout_height="52dp"
+                                android:layout_marginStart="6dp"
+                                android:layout_weight="1"
+                                android:background="@drawable/bg_secondary_button"
+                                android:text="정지"
+                                android:textAllCaps="false"
+                                android:textColor="@color/white"
+                                android:textStyle="bold" />
                         </LinearLayout>
-                    </com.google.android.material.card.MaterialCardView>
 
-                    <com.google.android.material.card.MaterialCardView
+                        <TextView
+                            android:id="@+id/text_detail_robot_status"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="12dp"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="14sp" />
+                    </LinearLayout>
+
+                    <ScrollView
                         android:id="@+id/panel_detail_log"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:visibility="gone"
-                        app:cardBackgroundColor="@color/surface_card"
-                        app:cardCornerRadius="@dimen/plant_section_radius"
-                        app:cardElevation="@dimen/elevation_card"
-                        app:strokeColor="@color/plant_stroke"
-                        app:strokeWidth="1dp">
+                android:background="@drawable/bg_section_box"
+                android:fillViewport="true"
+                android:padding="14dp"
+                android:visibility="gone">
 
-                        <ScrollView
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:fillViewport="true"
-                            android:padding="@dimen/spacing_section"
-                            android:scrollbars="vertical">
-
-                            <TextView
-                                android:id="@+id/text_detail_log"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:lineSpacingExtra="4dp"
-                                android:textColor="@color/text_primary"
-                                android:textSize="14sp" />
-                        </ScrollView>
-                    </com.google.android.material.card.MaterialCardView>
+                <TextView
+                    android:id="@+id/text_detail_log"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/text_primary"
+                    android:textSize="14sp" />
+                    </ScrollView>
                 </FrameLayout>
             </LinearLayout>
         </androidx.core.widget.NestedScrollView>
@@ -625,17 +506,10 @@
             android:id="@+id/detail_bottom_navigation"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="@drawable/bg_bottom_nav_bar"
-            android:elevation="@dimen/plant_bottom_nav_elevation"
-            android:paddingTop="@dimen/spacing_sm"
-            android:paddingBottom="@dimen/spacing_sm"
+            android:layout_marginTop="10dp"
+            android:background="@drawable/bg_surface_card"
             app:itemActiveIndicatorStyle="@style/Widget.PlantMate.BottomNavigation.ActiveIndicator"
-            app:itemIconSize="26dp"
             app:itemIconTint="@color/bottom_nav_colors"
-            app:itemPaddingTop="2dp"
-            app:itemPaddingBottom="2dp"
-            app:itemTextAppearanceActive="@style/TextAppearance.PlantMate.BottomNav.Active"
-            app:itemTextAppearanceInactive="@style/TextAppearance.PlantMate.BottomNav.Inactive"
             app:itemTextColor="@color/bottom_nav_colors"
             app:labelVisibilityMode="labeled"
             app:menu="@menu/menu_plant_detail_navigation" />
