@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import json
+<<<<<<< Updated upstream
 import math
 from pathlib import Path
 
@@ -120,11 +121,63 @@ class RobotCommandNode(Node):
         self.declare_parameter('max_angular_speed', float(config['max_angular_speed']))
         self.declare_parameter('use_start_pose_as_origin', bool(config['use_start_pose_as_origin']))
         self.declare_parameter('reset_origin_on_command', bool(config['reset_origin_on_command']))
+=======
+import os
+import re
+import shlex
+import subprocess
+import sys
+
+import paho.mqtt.client as mqtt
+import rclpy
+from geometry_msgs.msg import PoseStamped
+from rclpy.node import Node
+from std_msgs.msg import String
+
+
+class RobotCommandNode(Node):
+    WORKFLOW_TAG = 'water-seq-pick-place-v1'
+
+    def __init__(self):
+        super().__init__('robot_command_node')
+
+        # 1. ROS2 토픽(/plantmate/robot_command) 구독 설정
+        self.create_subscription(String, '/plantmate/robot_command', self.on_command, 10)
+
+        # 2. JetRover 내비게이션(Nav2) 목적지 발행자(Publisher) 생성
+        self.nav_pub = self.create_publisher(PoseStamped, '/goal_pose', 10)
+
+        # 네트워크 설정
+        self.declare_parameter('mqtt_host', '192.168.0.30')
+        self.declare_parameter('mqtt_port', 1883)
+        self.declare_parameter('device_type', 'arm')
+        self.declare_parameter('device_id', 'robot-1')
+
+        # water 실행 템플릿
+        self.declare_parameter(
+            'water_command',
+            'python3 /home/ubuntu/run_watering.py --duration {duration}'
+        )
+        # arm 동작 템플릿
+        self.declare_parameter(
+            'arm_action_group',
+            '/home/ubuntu/ros2_ws/src/plantmate_jetrover_bridge/action_groups/watering_demo.d6a'
+        )
+        self.declare_parameter(
+            'arm_action_group_command',
+            'python3 /home/ubuntu/run_action_group.py {action_file}'
+        )
+        self.declare_parameter(
+            'arm_action_groups_dir',
+            '/home/ubuntu/ros2_ws/src/plantmate_jetrover_bridge/action_groups'
+        )
+>>>>>>> Stashed changes
 
         self.mqtt_host = self.get_parameter('mqtt_host').get_parameter_value().string_value
         self.mqtt_port = self.get_parameter('mqtt_port').get_parameter_value().integer_value
         self.device_type = self.get_parameter('device_type').get_parameter_value().string_value
         self.device_id = self.get_parameter('device_id').get_parameter_value().string_value
+<<<<<<< Updated upstream
         self.command_topic = self.get_parameter('command_topic').get_parameter_value().string_value
         self.ros_command_topic = self.get_parameter('ros_command_topic').get_parameter_value().string_value
         self.nav_goal_topic = self.get_parameter('nav_goal_topic').get_parameter_value().string_value
@@ -438,3 +491,266 @@ def main():
 
 if __name__ == '__main__':
     main()
+=======
+        self.water_command = self.get_parameter('water_command').get_parameter_value().string_value
+        self.arm_action_group = self.get_parameter('arm_action_group').get_parameter_value().string_value
+        self.arm_action_group_command = self.get_parameter('arm_action_group_command').get_parameter_value().string_value
+        self.arm_action_groups_dir = self.get_parameter('arm_action_groups_dir').get_parameter_value().string_value
+
+        self.status_topic = f'device/{self.device_type}/{self.device_id}/status'
+
+        self.valid_actions = {'water', 'watering', 'move', 'arm'}
+        self.arm_actions_map = {
+            'water': os.path.join(self.arm_action_groups_dir, 'watering_demo.d6a'),
+            'watering': os.path.join(self.arm_action_groups_dir, 'watering_demo.d6a'),
+            'watering_demo': os.path.join(self.arm_action_groups_dir, 'watering_demo.d6a'),
+            'watering_end': os.path.join(self.arm_action_groups_dir, 'watering_end_demo.d6a'),
+            'watering_end_demo': os.path.join(self.arm_action_groups_dir, 'watering_end_demo.d6a'),
+            'pick': os.path.join(self.arm_action_groups_dir, 'pick_demo.d6a'),
+            'pick_demo': os.path.join(self.arm_action_groups_dir, 'pick_demo.d6a'),
+            'arm_forward': os.path.join(self.arm_action_groups_dir, 'arm_forward.d6a'),
+            'forward': os.path.join(self.arm_action_groups_dir, 'arm_forward.d6a'),
+        }
+
+        try:
+            self.mqtt_client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION1)
+            self.mqtt_client.on_message = self.on_mqtt_message
+            self.mqtt_client.connect(self.mqtt_host, self.mqtt_port, 60)
+            self.mqtt_client.loop_start()
+            self.mqtt_client.subscribe('/plantmate/robot_command')
+            self.mqtt_client.subscribe('plantmate/robot_command')
+            self.get_logger().info(
+                f'MQTT connected! Subscribed to /plantmate/robot_command and plantmate/robot_command | Pub: {self.status_topic}'
+            )
+            self.get_logger().info(f'Workflow tag: {self.WORKFLOW_TAG}')
+            self.get_logger().info(f'Node source: {__file__}')
+            self.get_logger().info(f'Python executable: {sys.executable}')
+            self.get_logger().info(f'Water command configured: {self.water_command}')
+            self.get_logger().info(f'Arm action-group command configured: {self.arm_action_group_command}')
+        except Exception as e:
+            self.mqtt_client = None
+            self.get_logger().error(f'Failed to connect MQTT: {e}')
+
+    def on_mqtt_message(self, client, userdata, msg):
+        try:
+            payload_str = msg.payload.decode('utf-8')
+            ros2_msg = String()
+            ros2_msg.data = payload_str
+            self.on_command(ros2_msg)
+        except Exception as e:
+            self.get_logger().error(f'Failed to process MQTT message: {e}')
+
+    def on_command(self, msg):
+        try:
+            data = json.loads(msg.data)
+        except Exception as e:
+            self.get_logger().error(f'Invalid command json: {e}')
+            return
+
+        action_raw = str(data.get('action', '')).strip()
+        action = action_raw.lower()
+        plant_id = data.get('plantId', 0)
+        detail = data.get('detail', '')
+        detail_payload = self._parse_detail(detail)
+
+        self.get_logger().info(
+            f'Received command: plant_id={plant_id}, action={action_raw}, detail={detail}'
+        )
+
+        if action not in self.valid_actions:
+            self.get_logger().warn(f'Unsupported action: {action_raw}')
+            return
+
+        ack_payload = {
+            'eventType': 'COMMAND_RECEIVED',
+            'message': action_raw,
+            'plantId': plant_id,
+            'detail': detail,
+        }
+        if self.mqtt_client is not None:
+            result = self.mqtt_client.publish(self.status_topic, json.dumps(ack_payload), qos=1)
+            if result.rc == mqtt.MQTT_ERR_SUCCESS:
+                self.get_logger().info(f'ACK sent successfully with QoS 1: {ack_payload}')
+            else:
+                self.get_logger().warn(f'ACK publish failed: rc={result.rc}')
+        else:
+            self.get_logger().warn(f'MQTT disconnected, ACK skipped: {ack_payload}')
+
+        if action == 'move':
+            self.get_logger().info('이동명령 처리 금지')
+        elif action == 'watering':
+            duration = self._extract_duration(detail_payload, detail)
+            self.get_logger().info(f'[WATER] received command -> plant_id={plant_id}, duration={duration}, detail={detail}')
+            self._run_water_sequence(duration)
+        elif action == 'water':
+            duration = self._extract_duration(detail_payload, detail)
+            self.get_logger().info(f'[WATER] received command -> plant_id={plant_id}, duration={duration}, detail={detail}')
+            self._run_water_sequence(duration)
+        elif action == 'arm':
+            action_file = self._resolve_arm_action_file(detail_payload, detail)
+            cmd = self._build_command(self.arm_action_group_command, action_file=action_file)
+            self.get_logger().info(f'[ARM] direct command -> action_file={action_file}')
+            self._run_external_command('ARM', cmd)
+
+    def _parse_detail(self, detail):
+        if isinstance(detail, dict):
+            return detail
+        if not detail:
+            return {}
+        if not isinstance(detail, str):
+            detail = str(detail).strip()
+        try:
+            parsed = json.loads(detail)
+            if isinstance(parsed, dict):
+                return parsed
+        except Exception:
+            pass
+        detail_pairs = {}
+        parts = re.split(r'[,;\s]+', detail)
+        for part in parts:
+            part = part.strip()
+            if not part or '=' not in part:
+                continue
+            key, value = part.split('=', 1)
+            detail_pairs[key.strip()] = value.strip().strip('"\'')
+        return detail_pairs
+
+    def _extract_duration(self, detail_payload, detail):
+        raw = detail_payload.get('duration')
+        if raw is None:
+            raw = detail
+        if isinstance(raw, (int, float)):
+            return raw
+        try:
+            return int(str(raw))
+        except Exception:
+            return 5
+
+    def _run_water_sequence(self, duration):
+        self.get_logger().info('[WATER] starting integrated sequence: pick -> water -> watering_end')
+        # 물주기 실행 전/후로 팔 동작을 함께 수행하는 고정 시퀀스
+        # 1) 물병 집기
+        pick_file = self._resolve_arm_action_file({'action': 'pick'}, '')
+        pick_cmd = self._build_command(self.arm_action_group_command, action_file=pick_file)
+        self.get_logger().info(f'[WATER] step1 pick action_file={pick_file}')
+        if not self._run_external_command('ARM', pick_cmd):
+            self.get_logger().error('[WATER] 물병 집기 실패 -> 전체 시퀀스 중단')
+            return
+
+        # 2) 물주기
+        water_cmd = self._build_command(self.water_command, duration=duration)
+        self.get_logger().info(f'[WATER] step2 watering duration={duration}')
+        if not self._run_external_command('WATER', water_cmd):
+            self.get_logger().error('[WATER] 물주기 실패 -> 물병 놓기 건너뜀')
+            return
+
+        # 3) 물병 놓기
+        place_file = self._resolve_arm_action_file({'action': 'watering_end'}, '')
+        place_cmd = self._build_command(self.arm_action_group_command, action_file=place_file)
+        self.get_logger().info(f'[WATER] step3 place action_file={place_file}')
+        self._run_external_command('ARM', place_cmd)
+
+    def _resolve_arm_action_file(self, detail_payload, detail):
+        candidates = [
+            detail_payload.get('action_file'),
+            detail_payload.get('file'),
+            detail_payload.get('path'),
+            detail_payload.get('action'),
+            detail_payload.get('name'),
+        ]
+        file_name = None
+        for candidate in candidates:
+            if candidate:
+                file_name = str(candidate).strip()
+                break
+        if not file_name:
+            file_name = detail.strip()
+        if not file_name:
+            return self.arm_action_group
+
+        file_name = file_name.strip()
+        mapped = self.arm_actions_map.get(file_name)
+        if mapped:
+            return mapped
+
+        lower_name = file_name.lower()
+        mapped = self.arm_actions_map.get(lower_name)
+        if mapped:
+            return mapped
+
+        if os.path.sep not in file_name and not lower_name.endswith('.d6a'):
+            mapped = self.arm_actions_map.get(lower_name.replace('.txt', ''))
+            if mapped:
+                return mapped
+
+        if not os.path.isabs(file_name):
+            if file_name.endswith('.d6a'):
+                file_name = os.path.join(self.arm_action_groups_dir, file_name)
+            else:
+                file_name = os.path.join(self.arm_action_groups_dir, f'{file_name}.d6a')
+
+        if not os.path.exists(file_name):
+            self.get_logger().warn(f'Action group file not found: {file_name}')
+        return file_name
+
+    def _build_command(self, command_template, **kwargs):
+        try:
+            return command_template.format(**kwargs)
+        except Exception as e:
+            self.get_logger().error(f'Command template parse failed: {e}')
+            raise
+
+    def _run_external_command(self, label, command):
+        try:
+            args = shlex.split(command)
+            self.get_logger().info(f'[{label}] execute: {args}')
+            proc = subprocess.run(
+                args,
+                check=False,
+                capture_output=True,
+                text=True,
+                timeout=120,
+            )
+            if proc.returncode == 0:
+                self.get_logger().info(f'[{label}] {label.lower()} command completed successfully')
+                return True
+            else:
+                self.get_logger().error(
+                    f'[{label}] {label.lower()} command failed rc={proc.returncode}, '
+                    f'stdout={proc.stdout}, stderr={proc.stderr}'
+                )
+                return False
+        except subprocess.TimeoutExpired as e:
+            self.get_logger().error(f'[{label}] command timeout: {e}')
+            return False
+        except FileNotFoundError:
+            self.get_logger().error(f'[{label}] command failed: executable not found')
+            return False
+        except Exception as e:
+            self.get_logger().error(f'[{label}] command failed: {e}')
+            return False
+
+    def destroy_node(self):
+        if self.mqtt_client is not None:
+            self.mqtt_client.loop_stop()
+            self.mqtt_client.disconnect()
+        super().destroy_node()
+
+
+def main():
+    rclpy.init()
+    node = RobotCommandNode()
+    try:
+        rclpy.spin(node)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        node.destroy_node()
+        if rclpy.ok():
+            rclpy.shutdown()
+
+
+if __name__ == '__main__':
+    main()
+
+>>>>>>> Stashed changes
