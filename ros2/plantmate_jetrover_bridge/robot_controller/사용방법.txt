@@ -3,6 +3,10 @@
 cd ~/ros2_ws/src/app/app
 
 python3 robot_command_node.py
+python3 robot_heartbeat_node.py
+
+robot_command_node.py: move/water 명령 처리, /controller/cmd_vel 발행
+robot_heartbeat_node.py: 서버 PING 수신, device/arm/robot-1/status 로 PONG 발행
 
 
 서버

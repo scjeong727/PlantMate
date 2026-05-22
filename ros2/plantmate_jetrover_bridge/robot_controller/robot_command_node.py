@@ -163,8 +163,8 @@ class RobotCommandNode(Node):
 
         self.status_topic = f'device/{self.device_type}/{self.device_id}/status'
 
-        # 로봇이 'water' 뿐만 아니라 'move' 명령도 허용하도록 추가
-        self.valid_actions = {'water', 'move', 'MOVE'} 
+        # 로봇 이동 제어 노드는 move/water만 처리합니다. ping/pong은 heartbeat 노드가 담당합니다.
+        self.valid_actions = {'water', 'move'}
 
         try:
             self.mqtt_client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION1)
@@ -307,6 +307,16 @@ class RobotCommandNode(Node):
         except Exception as e:
             self.get_logger().error(f'Failed to process MQTT message: {e}')
 
+    def is_targeted_to_this_device(self, data):
+        target_type = str(data.get('targetDeviceType', '')).strip()
+        target_id = str(data.get('targetDeviceId', '')).strip()
+
+        if target_type and target_type != self.device_type:
+            return False
+        if target_id and target_id != self.device_id:
+            return False
+        return True
+
     def on_command(self, msg):
         try:
             data = json.loads(msg.data)
@@ -325,6 +335,16 @@ class RobotCommandNode(Node):
         self.get_logger().info(
             f'Received command: plant_id={plant_id}, action={action_raw}, detail={detail}'
         )
+
+        if not self.is_targeted_to_this_device(data):
+            self.get_logger().info(
+                f'Command ignored for target={data.get("targetDeviceType", "")}/{data.get("targetDeviceId", "")}'
+            )
+            return
+
+        if action == 'ping':
+            self.get_logger().debug('PING ignored by robot_command_node; handled by robot_heartbeat_node')
+            return
 
         if action not in {'water', 'move'}:
             self.get_logger().warn(f'Unsupported action: {action_raw}')

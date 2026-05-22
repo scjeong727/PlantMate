@@ -23,6 +23,7 @@
 #include "server_config.h"
 
 #define BUF_SIZE 4096
+#define ROBOT_PONG_TIMEOUT_SECONDS 10
 
 extern CommandQueue g_command_queue;
 extern DBQueue g_db_queue;
@@ -518,6 +519,13 @@ static void handle_robot_command(int client_sock, const char* buf)
     }
 
     if (mqtt_device_registry_get(plant_id, "robot", &mqtt_binding)) {
+        if (!mqtt_device_registry_is_live_device_online(
+                mqtt_binding.device_type,
+                mqtt_binding.device_id,
+                ROBOT_PONG_TIMEOUT_SECONDS)) {
+            send(client_sock, "ERROR robot_offline\n", 20, 0);
+            return;
+        }
         mqtt_adapter_publish_bridge_command(plant_id, action, detail);
         printf("robot command delegated to mqtt ros bridge: topic=%s device=%s/%s action=%s\n",
             ROS2_BRIDGE_TOPIC_DEFAULT, mqtt_binding.device_type, mqtt_binding.device_id, action);

@@ -20,6 +20,7 @@
 #include "ros2_bridge.h"
 
 #define WATER_BAUDRATE B9600
+#define ROBOT_PONG_TIMEOUT_SECONDS 10
 
 extern DBQueue g_db_queue;
 extern CommandQueue g_command_queue;
@@ -136,12 +137,20 @@ void* watering_thread_main(void* arg)
         if (!device_lock_get_device_by_owner(&g_water_device_lock, cmd.owner_sock, device_path, sizeof(device_path))) {
             if (mqtt_device_registry_get(cmd.plant_id, "water", &mqtt_binding)) {
                 char detail[128];
-                build_water_bridge_detail(cmd.plant_id, cmd.duration, detail, sizeof(detail));
-                mqtt_adapter_publish_bridge_command(cmd.plant_id, "water", detail);
-                dispatched_to_mqtt_device = 1;
-                ok = 1;
-                printf("watering delegated to mqtt ros bridge: type=%s id=%s\n",
-                    mqtt_binding.device_type, mqtt_binding.device_id);
+                if (!mqtt_device_registry_is_live_device_online(
+                        mqtt_binding.device_type,
+                        mqtt_binding.device_id,
+                        ROBOT_PONG_TIMEOUT_SECONDS)) {
+                    printf("watering mqtt ros bridge offline: type=%s id=%s\n",
+                        mqtt_binding.device_type, mqtt_binding.device_id);
+                } else {
+                    build_water_bridge_detail(cmd.plant_id, cmd.duration, detail, sizeof(detail));
+                    mqtt_adapter_publish_bridge_command(cmd.plant_id, "water", detail);
+                    dispatched_to_mqtt_device = 1;
+                    ok = 1;
+                    printf("watering delegated to mqtt ros bridge: type=%s id=%s\n",
+                        mqtt_binding.device_type, mqtt_binding.device_id);
+                }
             } else {
                 char detail[128];
                 build_water_bridge_detail(cmd.plant_id, cmd.duration, detail, sizeof(detail));
