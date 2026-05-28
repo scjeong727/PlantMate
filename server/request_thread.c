@@ -7,6 +7,7 @@
 #include <signal.h>
 #include <dirent.h>
 #include <ctype.h>
+#include <stdint.h>
 
 #include "session_manager.h"
 #include "db_queue.h"
@@ -19,9 +20,10 @@
 #include "ros2_bridge.h"
 #include "mqtt_adapter.h"
 #include "mqtt_device_registry.h"
+#include "server_config.h"
 
-#define PORT 9000
 #define BUF_SIZE 4096
+#define ROBOT_PONG_TIMEOUT_SECONDS 10
 
 extern CommandQueue g_command_queue;
 extern DBQueue g_db_queue;
@@ -264,6 +266,8 @@ static int rewrite_plant_command_with_session_user(int client_sock, const char* 
     int plant_id;
     char name[64];
     char type[64];
+    char position_x[32];
+    char position_y[32];
 
     double temp_min, temp_max;
     double humi_min, humi_max;
@@ -281,16 +285,16 @@ static int rewrite_plant_command_with_session_user(int client_sock, const char* 
 
     if (strncmp(in, "ADD_PLANT ", 10) == 0) {
         if (sscanf(in,
-            "ADD_PLANT %d %63s %63s %lf %lf %lf %lf %d %d %d %d",
-            &ignored_user_id, name, type,
+            "ADD_PLANT %d %63s %63s %31s %31s %lf %lf %lf %lf %d %d %d %d",
+            &ignored_user_id, name, type, position_x, position_y,
             &temp_min, &temp_max,
             &humi_min, &humi_max,
             &soil_min, &soil_max,
-            &light_min, &light_max) == 11)
+            &light_min, &light_max) == 13)
         {
             snprintf(out, out_size,
-                "ADD_PLANT %d %s %s %.2f %.2f %.2f %.2f %d %d %d %d",
-                user_id, name, type,
+                "ADD_PLANT %d %s %s %s %s %.2f %.2f %.2f %.2f %d %d %d %d",
+                user_id, name, type, position_x, position_y,
                 temp_min, temp_max,
                 humi_min, humi_max,
                 soil_min, soil_max,
@@ -299,16 +303,16 @@ static int rewrite_plant_command_with_session_user(int client_sock, const char* 
         }
 
         if (sscanf(in,
-            "ADD_PLANT %63s %63s %lf %lf %lf %lf %d %d %d %d",
-            name, type,
+            "ADD_PLANT %63s %63s %31s %31s %lf %lf %lf %lf %d %d %d %d",
+            name, type, position_x, position_y,
             &temp_min, &temp_max,
             &humi_min, &humi_max,
             &soil_min, &soil_max,
-            &light_min, &light_max) == 10)
+            &light_min, &light_max) == 12)
         {
             snprintf(out, out_size,
-                "ADD_PLANT %d %s %s %.2f %.2f %.2f %.2f %d %d %d %d",
-                user_id, name, type,
+                "ADD_PLANT %d %s %s %s %s %.2f %.2f %.2f %.2f %d %d %d %d",
+                user_id, name, type, position_x, position_y,
                 temp_min, temp_max,
                 humi_min, humi_max,
                 soil_min, soil_max,
@@ -317,7 +321,7 @@ static int rewrite_plant_command_with_session_user(int client_sock, const char* 
         }
 
         snprintf(out, out_size,
-            "ERROR usage: ADD_PLANT name type temp_min temp_max humi_min humi_max soil_min soil_max light_min light_max\n");
+            "ERROR usage: ADD_PLANT name type position_x position_y temp_min temp_max humi_min humi_max soil_min soil_max light_min light_max\n");
         return -1;
     }
 
@@ -338,16 +342,16 @@ static int rewrite_plant_command_with_session_user(int client_sock, const char* 
 
     if (strncmp(in, "EDIT_PLANT ", 11) == 0) {
         if (sscanf(in,
-            "EDIT_PLANT %d %d %63s %63s %lf %lf %lf %lf %d %d %d %d",
-            &plant_id, &ignored_user_id, name, type,
+            "EDIT_PLANT %d %d %63s %63s %31s %31s %lf %lf %lf %lf %d %d %d %d",
+            &plant_id, &ignored_user_id, name, type, position_x, position_y,
             &temp_min, &temp_max,
             &humi_min, &humi_max,
             &soil_min, &soil_max,
-            &light_min, &light_max) == 12)
+            &light_min, &light_max) == 14)
         {
             snprintf(out, out_size,
-                "EDIT_PLANT %d %d %s %s %.2f %.2f %.2f %.2f %d %d %d %d",
-                plant_id, user_id, name, type,
+                "EDIT_PLANT %d %d %s %s %s %s %.2f %.2f %.2f %.2f %d %d %d %d",
+                plant_id, user_id, name, type, position_x, position_y,
                 temp_min, temp_max,
                 humi_min, humi_max,
                 soil_min, soil_max,
@@ -356,16 +360,16 @@ static int rewrite_plant_command_with_session_user(int client_sock, const char* 
         }
 
         if (sscanf(in,
-            "EDIT_PLANT %d %63s %63s %lf %lf %lf %lf %d %d %d %d",
-            &plant_id, name, type,
+            "EDIT_PLANT %d %63s %63s %31s %31s %lf %lf %lf %lf %d %d %d %d",
+            &plant_id, name, type, position_x, position_y,
             &temp_min, &temp_max,
             &humi_min, &humi_max,
             &soil_min, &soil_max,
-            &light_min, &light_max) == 11)
+            &light_min, &light_max) == 13)
         {
             snprintf(out, out_size,
-                "EDIT_PLANT %d %d %s %s %.2f %.2f %.2f %.2f %d %d %d %d",
-                plant_id, user_id, name, type,
+                "EDIT_PLANT %d %d %s %s %s %s %.2f %.2f %.2f %.2f %d %d %d %d",
+                plant_id, user_id, name, type, position_x, position_y,
                 temp_min, temp_max,
                 humi_min, humi_max,
                 soil_min, soil_max,
@@ -374,7 +378,7 @@ static int rewrite_plant_command_with_session_user(int client_sock, const char* 
         }
 
         snprintf(out, out_size,
-            "ERROR usage: EDIT_PLANT plant_id name type temp_min temp_max humi_min humi_max soil_min soil_max light_min light_max\n");
+            "ERROR usage: EDIT_PLANT plant_id name type position_x position_y temp_min temp_max humi_min humi_max soil_min soil_max light_min light_max\n");
         return -1;
     }
 
@@ -515,6 +519,13 @@ static void handle_robot_command(int client_sock, const char* buf)
     }
 
     if (mqtt_device_registry_get(plant_id, "robot", &mqtt_binding)) {
+        if (!mqtt_device_registry_is_live_device_online(
+                mqtt_binding.device_type,
+                mqtt_binding.device_id,
+                ROBOT_PONG_TIMEOUT_SECONDS)) {
+            send(client_sock, "ERROR robot_offline\n", 20, 0);
+            return;
+        }
         mqtt_adapter_publish_bridge_command(plant_id, action, detail);
         printf("robot command delegated to mqtt ros bridge: topic=%s device=%s/%s action=%s\n",
             ROS2_BRIDGE_TOPIC_DEFAULT, mqtt_binding.device_type, mqtt_binding.device_id, action);
@@ -536,6 +547,7 @@ void* request_thread_main(void* arg)
     (void)arg;
 
     int server_sock, client_sock = -1;
+    int port = server_config_get()->request_port;
     struct sockaddr_in server_addr, client_addr;
     socklen_t client_len;
     fd_set reads, cpy_reads;
@@ -559,7 +571,7 @@ void* request_thread_main(void* arg)
     memset(&server_addr, 0, sizeof(server_addr));
     server_addr.sin_family = AF_INET;
     server_addr.sin_addr.s_addr = INADDR_ANY;
-    server_addr.sin_port = htons(PORT);
+    server_addr.sin_port = htons((uint16_t)port);
 
     if (bind(server_sock, (struct sockaddr*)&server_addr, sizeof(server_addr)) == -1) {
         perror("bind");
@@ -577,7 +589,7 @@ void* request_thread_main(void* arg)
     FD_SET(server_sock, &reads);
     fd_max = server_sock;
 
-    printf("request thread listening on %d\n", PORT);
+    printf("request thread listening on %d\n", port);
 
     while (1)
     {

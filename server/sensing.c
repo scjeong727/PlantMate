@@ -3,6 +3,7 @@
 
 #include "sensing.h"
 #include "device_lock.h"
+#include "server_config.h"
 
 #include <arpa/inet.h>
 #include <errno.h>
@@ -20,8 +21,6 @@
 #define SENSING_SERIAL_DEVICE "/dev/ttyACM0"
 #define WATERING_SERIAL_DEVICE "/dev/ttyACM1"
 #define SENSING_BAUDRATE B9600
-#define SENSING_SERVER_IP "127.0.0.1"
-#define SENSING_SERVER_PORT 9001
 #define SENSING_INTERVAL_SEC 5
 
 #define LINE_BUF_SIZE 256
@@ -183,6 +182,7 @@ static int send_to_sensor_thread(int plant_id, const SensorReading* reading)
     char req[256];
     char resp[256];
     struct sockaddr_in serv_addr;
+    const ServerConfig* config;
 
     if (!reading) return 0;
 
@@ -190,9 +190,10 @@ static int send_to_sensor_thread(int plant_id, const SensorReading* reading)
     if (sock < 0) return 0;
 
     memset(&serv_addr, 0, sizeof(serv_addr));
+    config = server_config_get();
     serv_addr.sin_family = AF_INET;
-    serv_addr.sin_port = htons(SENSING_SERVER_PORT);
-    if (inet_pton(AF_INET, SENSING_SERVER_IP, &serv_addr.sin_addr) <= 0) {
+    serv_addr.sin_port = htons((uint16_t)config->sensor_port);
+    if (inet_pton(AF_INET, config->sensing_server_ip, &serv_addr.sin_addr) <= 0) {
         close(sock);
         return 0;
     }

@@ -11,6 +11,8 @@
 extern CommandQueue g_command_queue;
 
 int plant_service_add(MYSQL* conn, int user_id, const char* name, const char* type,
+    int has_position_x, double position_x,
+    int has_position_y, double position_y,
     double temp_min, double temp_max,
     double humi_min, double humi_max,
     int soil_min, int soil_max,
@@ -25,6 +27,8 @@ int plant_service_add(MYSQL* conn, int user_id, const char* name, const char* ty
     if (light_min > light_max) return 0;
 
     return plant_repository_add(conn, user_id, name, type,
+        has_position_x, position_x,
+        has_position_y, position_y,
         temp_min, temp_max,
         humi_min, humi_max,
         soil_min, soil_max,
@@ -57,6 +61,8 @@ int plant_service_remove(MYSQL* conn, int plant_id, int user_id)
 }
 
 int plant_service_edit(MYSQL* conn, int plant_id, int user_id, const char* name, const char* type,
+    int has_position_x, double position_x,
+    int has_position_y, double position_y,
     double temp_min, double temp_max,
     double humi_min, double humi_max,
     int soil_min, int soil_max,
@@ -74,6 +80,8 @@ int plant_service_edit(MYSQL* conn, int plant_id, int user_id, const char* name,
         return 0;
 
     return plant_repository_edit(conn, plant_id, user_id, name, type,
+        has_position_x, position_x,
+        has_position_y, position_y,
         temp_min, temp_max,
         humi_min, humi_max,
         soil_min, soil_max,
@@ -114,21 +122,42 @@ void handle_add_plant_with_conn(MYSQL* conn, int client_sock, const char* buf)
 {
     int user_id;
     char name[64], type[64];
+    char position_x_text[32], position_y_text[32];
+    int has_position_x = 0, has_position_y = 0;
+    double position_x = 0, position_y = 0;
     double temp_min, temp_max, humi_min, humi_max;
     int soil_min, soil_max, light_min, light_max;
 
     if (sscanf(buf,
-        "ADD_PLANT %d %63s %63s %lf %lf %lf %lf %d %d %d %d",
-        &user_id, name, type,
+        "ADD_PLANT %d %63s %63s %31s %31s %lf %lf %lf %lf %d %d %d %d",
+        &user_id, name, type, position_x_text, position_y_text,
         &temp_min, &temp_max,
         &humi_min, &humi_max,
         &soil_min, &soil_max,
-        &light_min, &light_max) != 11) {
-        send(client_sock, "ERROR usage: ADD_PLANT user_id name type temp_min temp_max humi_min humi_max soil_min soil_max light_min light_max\n", 121, 0);
+        &light_min, &light_max) != 13) {
+        send(client_sock, "ERROR usage: ADD_PLANT user_id name type position_x position_y temp_min temp_max humi_min humi_max soil_min soil_max light_min light_max\n", 143, 0);
         return;
     }
 
+    if (strcmp(position_x_text, "null") != 0) {
+        if (sscanf(position_x_text, "%lf", &position_x) != 1) {
+            send(client_sock, "ERROR invalid_position\n", 23, 0);
+            return;
+        }
+        has_position_x = 1;
+    }
+
+    if (strcmp(position_y_text, "null") != 0) {
+        if (sscanf(position_y_text, "%lf", &position_y) != 1) {
+            send(client_sock, "ERROR invalid_position\n", 23, 0);
+            return;
+        }
+        has_position_y = 1;
+    }
+
     if (plant_service_add(conn, user_id, name, type,
+        has_position_x, position_x,
+        has_position_y, position_y,
         temp_min, temp_max,
         humi_min, humi_max,
         soil_min, soil_max,
@@ -182,21 +211,42 @@ void handle_edit_plant_with_conn(MYSQL* conn, int client_sock, const char* buf)
 {
     int plant_id, user_id;
     char name[64], type[64];
+    char position_x_text[32], position_y_text[32];
+    int has_position_x = 0, has_position_y = 0;
+    double position_x = 0, position_y = 0;
     double temp_min, temp_max, humi_min, humi_max;
     int soil_min, soil_max, light_min, light_max;
 
     if (sscanf(buf,
-        "EDIT_PLANT %d %d %63s %63s %lf %lf %lf %lf %d %d %d %d",
-        &plant_id, &user_id, name, type,
+        "EDIT_PLANT %d %d %63s %63s %31s %31s %lf %lf %lf %lf %d %d %d %d",
+        &plant_id, &user_id, name, type, position_x_text, position_y_text,
         &temp_min, &temp_max,
         &humi_min, &humi_max,
         &soil_min, &soil_max,
-        &light_min, &light_max) != 12) {
-        send(client_sock, "ERROR usage: EDIT_PLANT plant_id user_id name type temp_min temp_max humi_min humi_max soil_min soil_max light_min light_max\n", 130, 0);
+        &light_min, &light_max) != 14) {
+        send(client_sock, "ERROR usage: EDIT_PLANT plant_id user_id name type position_x position_y temp_min temp_max humi_min humi_max soil_min soil_max light_min light_max\n", 152, 0);
         return;
     }
 
+    if (strcmp(position_x_text, "null") != 0) {
+        if (sscanf(position_x_text, "%lf", &position_x) != 1) {
+            send(client_sock, "ERROR invalid_position\n", 23, 0);
+            return;
+        }
+        has_position_x = 1;
+    }
+
+    if (strcmp(position_y_text, "null") != 0) {
+        if (sscanf(position_y_text, "%lf", &position_y) != 1) {
+            send(client_sock, "ERROR invalid_position\n", 23, 0);
+            return;
+        }
+        has_position_y = 1;
+    }
+
     if (plant_service_edit(conn, plant_id, user_id, name, type,
+        has_position_x, position_x,
+        has_position_y, position_y,
         temp_min, temp_max,
         humi_min, humi_max,
         soil_min, soil_max,

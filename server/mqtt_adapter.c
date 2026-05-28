@@ -28,11 +28,13 @@
 #include "sensor_repository.h"
 #include "sensor_service.h"
 #include "user_service.h"
+#include "server_config.h"
 
-#define MQTT_PORT 1883
 #define MQTT_MAX_CLIENTS FD_SETSIZE
 #define MQTT_MAX_PACKET 8192
 #define MQTT_MAX_SUBS 16
+#define MQTT_ROBOT_PING_INTERVAL_SECONDS 3
+#define MQTT_ROBOT_PONG_TIMEOUT_SECONDS 10
 
 extern SensorBuffer g_sensor_buffer;
 extern DBQueue g_db_queue;
@@ -330,6 +332,8 @@ void mqtt_adapter_publish_bridge_command(int plant_id, const char* action, const
 
     topic = getenv("PLANTMATE_ROS2_TOPIC");
     if (!topic || topic[0] == '\0')
+        topic = server_config_get()->ros2_bridge_topic;
+    if (!topic || topic[0] == '\0')
         topic = ROS2_BRIDGE_TOPIC_DEFAULT;
 
     mqtt_copy_json_string(escaped_detail, sizeof(escaped_detail), detail ? detail : "");
@@ -338,6 +342,34 @@ void mqtt_adapter_publish_bridge_command(int plant_id, const char* action, const
         plant_id, action, escaped_detail);
 
     mqtt_publish_to_subscribers(topic, payload);
+}
+
+static void mqtt_adapter_publish_robot_pings(void)
+{
+    MqttDeviceIdentity devices[MQTT_DEVICE_REGISTRY_MAX];
+    int count;
+    int i;
+    const char* topic;
+    time_t now = time(NULL);
+
+    topic = server_config_get()->ros2_bridge_topic;
+    if (!topic || topic[0] == '\0')
+        topic = ROS2_BRIDGE_TOPIC_DEFAULT;
+
+    count = mqtt_device_registry_collect_bound_devices(NULL, devices, MQTT_DEVICE_REGISTRY_MAX);
+    for (i = 0; i < count; ++i) {
+        char payload[512];
+        snprintf(payload, sizeof(payload),
+            "{\"plantId\":0,\"action\":\"ping\",\"targetDeviceType\":\"%.*s\","
+            "\"targetDeviceId\":\"%.*s\",\"requestId\":\"ping-%ld-%d\"}",
+            MQTT_DEVICE_TYPE_MAX - 1,
+            devices[i].device_type,
+            MQTT_DEVICE_ID_MAX - 1,
+            devices[i].device_id,
+            (long)now,
+            i);
+        mqtt_publish_to_subscribers(topic, payload);
+    }
 }
 
 void mqtt_adapter_publish_device_status(const char* device_type, const char* device_id, const char* payload)
@@ -667,6 +699,10 @@ static void handle_rpc_publish(MqttClient* client, MYSQL* conn, const char* payl
     double temp_max = 0.0;
     double humi_min = 0.0;
     double humi_max = 0.0;
+    double position_x = 0.0;
+    double position_y = 0.0;
+    int has_position_x = 0;
+    int has_position_y = 0;
     int soil_min = 0;
     int soil_max = 0;
     int light_min = 0;
@@ -762,8 +798,13 @@ static void handle_rpc_publish(MqttClient* client, MYSQL* conn, const char* payl
             return;
         }
 
+        has_position_x = json_extract_double(payload, "positionX", &position_x);
+        has_position_y = json_extract_double(payload, "positionY", &position_y);
+
         if (strcmp(action, "addPlant") == 0) {
             if (!plant_service_add(conn, user_id, name, type,
+                    has_position_x, position_x,
+                    has_position_y, position_y,
                     temp_min, temp_max, humi_min, humi_max,
                     soil_min, soil_max, light_min, light_max)) {
                 mqtt_publish_rpc_error(client, request_id, "add_plant_failed");
@@ -795,6 +836,8 @@ static void handle_rpc_publish(MqttClient* client, MYSQL* conn, const char* payl
         }
 
         if (!plant_service_edit(conn, plant_id, user_id, name, type,
+                has_position_x, position_x,
+                has_position_y, position_y,
                 temp_min, temp_max, humi_min, humi_max,
                 soil_min, soil_max, light_min, light_max)) {
             mqtt_publish_rpc_error(client, request_id, "edit_plant_failed");
@@ -879,6 +922,8 @@ static void handle_rpc_publish(MqttClient* client, MYSQL* conn, const char* payl
     if (strcmp(action, "robotCommand") == 0) {
         char robot_action[ROS2_BRIDGE_ACTION_MAX];
         char detail[ROS2_BRIDGE_DETAIL_MAX];
+        char escaped_detail[ROS2_BRIDGE_DETAIL_MAX * 2];
+        char command_payload[512];
         MqttDeviceBinding binding;
 
         memset(detail, 0, sizeof(detail));
@@ -895,7 +940,18 @@ static void handle_rpc_publish(MqttClient* client, MYSQL* conn, const char* payl
         }
 
         if (mqtt_device_registry_get(plant_id, "robot", &binding)) {
-            mqtt_adapter_publish_bridge_command(plant_id, robot_action, detail);
+            if (!mqtt_device_registry_is_live_device_online(
+                    binding.device_type,
+                    binding.device_id,
+                    MQTT_ROBOT_PONG_TIMEOUT_SECONDS)) {
+                mqtt_publish_rpc_error(client, request_id, "robot_offline");
+                return;
+            }
+            mqtt_copy_json_string(escaped_detail, sizeof(escaped_detail), detail);
+            snprintf(command_payload, sizeof(command_payload),
+                "{\"plantId\":%d,\"action\":\"%s\",\"detail\":\"%s\"}",
+                plant_id, robot_action, escaped_detail);
+            mqtt_adapter_publish_device_command(binding.device_type, binding.device_id, robot_action, command_payload);
             mqtt_publish_rpc_ok_raw(client, request_id, "{\"message\":\"robot_command_published\"}");
             return;
         }
@@ -1199,6 +1255,7 @@ void* mqtt_adapter_thread_main(void* arg)
 {
     MYSQL conn;
     int server_sock;
+    int port = server_config_get()->mqtt_port;
     struct sockaddr_in addr;
     fd_set reads;
     int fd_max;
@@ -1226,7 +1283,7 @@ void* mqtt_adapter_thread_main(void* arg)
     memset(&addr, 0, sizeof(addr));
     addr.sin_family = AF_INET;
     addr.sin_addr.s_addr = INADDR_ANY;
-    addr.sin_port = htons(MQTT_PORT);
+    addr.sin_port = htons((uint16_t)port);
 
     if (bind(server_sock, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
         perror("mqtt bind");
@@ -1242,10 +1299,13 @@ void* mqtt_adapter_thread_main(void* arg)
         return NULL;
     }
 
-    printf("mqtt adapter listening on %d\n", MQTT_PORT);
+    printf("mqtt adapter listening on %d\n", port);
 
     while (1) {
         int i;
+        struct timeval timeout;
+        static time_t last_ping_at = 0;
+        time_t now;
 
         FD_ZERO(&reads);
         FD_SET(server_sock, &reads);
@@ -1261,11 +1321,21 @@ void* mqtt_adapter_thread_main(void* arg)
         }
         pthread_mutex_unlock(&g_clients_mutex);
 
-        if (select(fd_max + 1, &reads, NULL, NULL, NULL) < 0) {
+        timeout.tv_sec = 1;
+        timeout.tv_usec = 0;
+
+        if (select(fd_max + 1, &reads, NULL, NULL, &timeout) < 0) {
             if (errno == EINTR)
                 continue;
             perror("mqtt select");
             continue;
+        }
+
+        now = time(NULL);
+        if (last_ping_at == 0 || now - last_ping_at >= MQTT_ROBOT_PING_INTERVAL_SECONDS) {
+            mqtt_adapter_publish_robot_pings();
+            mqtt_device_registry_mark_stale_live_devices_offline(MQTT_ROBOT_PONG_TIMEOUT_SECONDS);
+            last_ping_at = now;
         }
 
         if (FD_ISSET(server_sock, &reads)) {

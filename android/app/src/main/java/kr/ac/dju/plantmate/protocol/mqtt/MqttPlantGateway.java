@@ -19,6 +19,7 @@ import kr.ac.dju.plantmate.model.EventRecord;
 import kr.ac.dju.plantmate.model.MonitorSnapshot;
 import kr.ac.dju.plantmate.model.PlantProfile;
 import kr.ac.dju.plantmate.model.SensorRecord;
+import kr.ac.dju.plantmate.config.AppConfig;
 import kr.ac.dju.plantmate.parser.ResponseParser;
 import kr.ac.dju.plantmate.protocol.ConnectionConfig;
 import kr.ac.dju.plantmate.protocol.PlantGateway;
@@ -31,6 +32,7 @@ public class MqttPlantGateway implements PlantGateway {
     private static final String KEY_BROKER_PORT = "broker_port";
     private static final String KEY_BROKER_CLIENT = "broker_client";
     private final SharedPreferences preferences;
+    private final AppConfig appConfig;
     private final MqttManager mqttManager = new MqttManager();
     private final ResponseParser responseParser = new ResponseParser();
     private final List<String> sensorHistory = new ArrayList<>();
@@ -55,6 +57,7 @@ public class MqttPlantGateway implements PlantGateway {
 
     public MqttPlantGateway(Context context) {
         preferences = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        appConfig = AppConfig.load(context);
         mqttManager.setListener(new MqttManager.ManagerListener() {
             @Override
             public void onConnected(boolean reconnect) {
@@ -286,6 +289,32 @@ public class MqttPlantGateway implements PlantGateway {
     }
 
     @Override
+    public List<String> loadRobotDevices() throws Exception {
+        JSONObject response = sendRequest("getDeviceList", request -> request.put("deviceType", "robot"));
+        return responseParser.parseDeviceList("OK " + requireData(response).toString());
+    }
+
+    @Override
+    public void setRobotDevice(String deviceId, int plantId) throws Exception {
+        requireConnected();
+        if (deviceId == null || deviceId.trim().isEmpty()) {
+            throw new IllegalArgumentException("로봇 장치를 선택하세요.");
+        }
+        if (plantId <= 0) {
+            throw new IllegalArgumentException("식물을 선택하세요.");
+        }
+
+        sendRequest("bindDevice", request -> {
+            request.put("plantId", plantId);
+            request.put("role", "robot");
+            request.put("deviceType", "robot");
+            request.put("deviceId", deviceId.trim());
+        });
+        selectPlant(plantId);
+        appendEvent("MQTT 로봇 장치 바인딩 완료: " + deviceId.trim());
+    }
+
+    @Override
     public void robotCommand(int plantId, String action, String detail) throws Exception {
         requireConnected();
         if (plantId <= 0) {
@@ -326,9 +355,9 @@ public class MqttPlantGateway implements PlantGateway {
 
     private BrokerConfig getBrokerConfig() {
         return new BrokerConfig(
-                preferences.getString(KEY_BROKER_HOST, "broker.hivemq.com"),
-                preferences.getInt(KEY_BROKER_PORT, 1883),
-                preferences.getString(KEY_BROKER_CLIENT, "PlantMate-MQTT")
+                preferences.getString(KEY_BROKER_HOST, appConfig.getDefaultHost()),
+                preferences.getInt(KEY_BROKER_PORT, appConfig.getMqttPort()),
+                preferences.getString(KEY_BROKER_CLIENT, appConfig.getClientId())
         );
     }
 
@@ -458,6 +487,8 @@ public class MqttPlantGateway implements PlantGateway {
             request.put("plantId", plant.getPlantId());
             request.put("name", plant.getName());
             request.put("type", plant.getType());
+            request.put("positionX", plant.getPositionX() == null ? JSONObject.NULL : plant.getPositionX());
+            request.put("positionY", plant.getPositionY() == null ? JSONObject.NULL : plant.getPositionY());
             request.put("tempMin", plant.getTempMin());
             request.put("tempMax", plant.getTempMax());
             request.put("humiMin", plant.getHumiMin());

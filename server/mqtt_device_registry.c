@@ -98,6 +98,33 @@ static int mqtt_device_registry_save_live_device_locked(const char* device_type,
     return 1;
 }
 
+static int mqtt_device_registry_save_live_device_offline_locked(const char* device_type, const char* device_id)
+{
+    MYSQL conn;
+    char esc_type[MQTT_DEVICE_TYPE_MAX * 2 + 1];
+    char esc_id[MQTT_DEVICE_ID_MAX * 2 + 1];
+    char query[512];
+
+    memset(&conn, 0, sizeof(conn));
+    if (!db_connect(&conn))
+        return 0;
+
+    mysql_real_escape_string(&conn, esc_type, device_type, (unsigned long)strlen(device_type));
+    mysql_real_escape_string(&conn, esc_id, device_id, (unsigned long)strlen(device_id));
+    snprintf(query, sizeof(query),
+        "UPDATE mqtt_live_devices SET online=0, updated_at=CURRENT_TIMESTAMP "
+        "WHERE device_type='%s' AND device_id='%s'",
+        esc_type, esc_id);
+
+    if (mysql_query(&conn, query) != 0) {
+        db_close(&conn);
+        return 0;
+    }
+
+    db_close(&conn);
+    return 1;
+}
+
 void mqtt_device_registry_init(void)
 {
     pthread_mutex_lock(&g_registry_mutex);
@@ -322,6 +349,121 @@ int mqtt_device_registry_update_live_device(const char* device_type, const char*
     }
     pthread_mutex_unlock(&g_registry_mutex);
     return 1;
+}
+
+int mqtt_device_registry_collect_bound_devices(const char* role, MqttDeviceIdentity* out, int max_count)
+{
+    int i;
+    int j;
+    int count = 0;
+
+    if (!out || max_count <= 0)
+        return 0;
+
+    pthread_mutex_lock(&g_registry_mutex);
+    for (i = 0; i < MQTT_DEVICE_REGISTRY_MAX && count < max_count; ++i) {
+        if (g_bindings[i].plant_id <= 0 ||
+            g_bindings[i].device_type[0] == '\0' ||
+            g_bindings[i].device_id[0] == '\0')
+            continue;
+        if (role && role[0] != '\0' && strcmp(g_bindings[i].role, role) != 0)
+            continue;
+
+        for (j = 0; j < count; ++j) {
+            if (strcmp(out[j].device_type, g_bindings[i].device_type) == 0 &&
+                strcmp(out[j].device_id, g_bindings[i].device_id) == 0)
+                break;
+        }
+        if (j < count)
+            continue;
+
+        snprintf(out[count].device_type, sizeof(out[count].device_type), "%s", g_bindings[i].device_type);
+        snprintf(out[count].device_id, sizeof(out[count].device_id), "%s", g_bindings[i].device_id);
+        count++;
+    }
+    pthread_mutex_unlock(&g_registry_mutex);
+    return count;
+}
+
+int mqtt_device_registry_is_live_device_online(const char* device_type, const char* device_id, int timeout_seconds)
+{
+    int i;
+    int online = 0;
+    time_t now = time(NULL);
+
+    if (!device_type || device_type[0] == '\0' ||
+        !device_id || device_id[0] == '\0')
+        return 0;
+
+    pthread_mutex_lock(&g_registry_mutex);
+    for (i = 0; i < MQTT_DEVICE_REGISTRY_MAX; ++i) {
+        if (strcmp(g_live_devices[i].device_type, device_type) == 0 &&
+            strcmp(g_live_devices[i].device_id, device_id) == 0) {
+            online = g_live_devices[i].online &&
+                (timeout_seconds <= 0 || now - g_live_devices[i].updated_at <= timeout_seconds);
+            break;
+        }
+    }
+    pthread_mutex_unlock(&g_registry_mutex);
+    return online;
+}
+
+int mqtt_device_registry_mark_live_device_offline(const char* device_type, const char* device_id)
+{
+    int i;
+    int found = 0;
+
+    if (!device_type || device_type[0] == '\0' ||
+        !device_id || device_id[0] == '\0')
+        return 0;
+
+    pthread_mutex_lock(&g_registry_mutex);
+    for (i = 0; i < MQTT_DEVICE_REGISTRY_MAX; ++i) {
+        if (strcmp(g_live_devices[i].device_type, device_type) == 0 &&
+            strcmp(g_live_devices[i].device_id, device_id) == 0) {
+            g_live_devices[i].online = 0;
+            g_live_devices[i].updated_at = time(NULL);
+            found = 1;
+            break;
+        }
+    }
+
+    if (found && !mqtt_device_registry_save_live_device_offline_locked(device_type, device_id)) {
+        pthread_mutex_unlock(&g_registry_mutex);
+        return 0;
+    }
+
+    pthread_mutex_unlock(&g_registry_mutex);
+    return found;
+}
+
+int mqtt_device_registry_mark_stale_live_devices_offline(int timeout_seconds)
+{
+    int i;
+    int count = 0;
+    time_t now = time(NULL);
+
+    if (timeout_seconds <= 0)
+        return 0;
+
+    pthread_mutex_lock(&g_registry_mutex);
+    for (i = 0; i < MQTT_DEVICE_REGISTRY_MAX; ++i) {
+        if (!g_live_devices[i].online ||
+            g_live_devices[i].device_type[0] == '\0' ||
+            g_live_devices[i].device_id[0] == '\0')
+            continue;
+        if (now - g_live_devices[i].updated_at <= timeout_seconds)
+            continue;
+
+        g_live_devices[i].online = 0;
+        g_live_devices[i].updated_at = now;
+        mqtt_device_registry_save_live_device_offline_locked(
+            g_live_devices[i].device_type,
+            g_live_devices[i].device_id);
+        count++;
+    }
+    pthread_mutex_unlock(&g_registry_mutex);
+    return count;
 }
 
 int mqtt_device_registry_list_live_devices_json(const char* device_type, char* out, size_t out_size)

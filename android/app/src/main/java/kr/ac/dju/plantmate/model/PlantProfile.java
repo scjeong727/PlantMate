@@ -6,6 +6,8 @@ public class PlantProfile {
     private final int userId;
     private final String name;
     private final String type;
+    private final Double positionX;
+    private final Double positionY;
     private final double tempMin;
     private final double tempMax;
     private final double humiMin;
@@ -21,6 +23,8 @@ public class PlantProfile {
             int userId,
             String name,
             String type,
+            Double positionX,
+            Double positionY,
             double tempMin,
             double tempMax,
             double humiMin,
@@ -35,6 +39,8 @@ public class PlantProfile {
         this.userId = userId;
         this.name = name;
         this.type = type;
+        this.positionX = positionX;
+        this.positionY = positionY;
         this.tempMin = tempMin;
         this.tempMax = tempMax;
         this.humiMin = humiMin;
@@ -60,6 +66,14 @@ public class PlantProfile {
 
     public String getType() {
         return type;
+    }
+
+    public Double getPositionX() {
+        return positionX;
+    }
+
+    public Double getPositionY() {
+        return positionY;
     }
 
     public double getTempMin() {

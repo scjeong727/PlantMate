@@ -5,11 +5,14 @@
 #include <termios.h>
 #include <errno.h>
 #include <pthread.h>
+#include <mysql/mysql.h>
 
 #include "command_queue.h"
+#include "db.h"
 #include "db_queue.h"
 #include "event_log.h"
 #include "mqtt_device_registry.h"
+#include "plant_repository.h"
 #include "watering_thread.h"
 #include "watering_lock.h"
 #include "device_lock.h"
@@ -17,11 +20,37 @@
 #include "ros2_bridge.h"
 
 #define WATER_BAUDRATE B9600
+#define ROBOT_PONG_TIMEOUT_SECONDS 10
 
 extern DBQueue g_db_queue;
 extern CommandQueue g_command_queue;
 extern EventLog g_event_log;
 extern DeviceLock g_water_device_lock;
+
+static void build_water_bridge_detail(int plant_id, int duration, char* out, size_t out_size)
+{
+    MYSQL conn;
+    double position_x = 0.0;
+    double position_y = 0.0;
+    int has_position = 0;
+
+    if (!out || out_size == 0)
+        return;
+
+    snprintf(out, out_size, "{\"duration\":%d}", duration);
+
+    if (!db_connect(&conn))
+        return;
+
+    if (plant_repository_get_position(&conn, plant_id, &position_x, &position_y, &has_position) &&
+        has_position) {
+        snprintf(out, out_size,
+            "{\"duration\":%d,\"x\":%.3f,\"y\":%.3f}",
+            duration, position_x, position_y);
+    }
+
+    mysql_close(&conn);
+}
 
 static int water_serial_open(const char* dev)
 {
@@ -108,15 +137,23 @@ void* watering_thread_main(void* arg)
         if (!device_lock_get_device_by_owner(&g_water_device_lock, cmd.owner_sock, device_path, sizeof(device_path))) {
             if (mqtt_device_registry_get(cmd.plant_id, "water", &mqtt_binding)) {
                 char detail[128];
-                snprintf(detail, sizeof(detail), "duration=%d", cmd.duration);
-                mqtt_adapter_publish_bridge_command(cmd.plant_id, "water", detail);
-                dispatched_to_mqtt_device = 1;
-                ok = 1;
-                printf("watering delegated to mqtt ros bridge: type=%s id=%s\n",
-                    mqtt_binding.device_type, mqtt_binding.device_id);
+                if (!mqtt_device_registry_is_live_device_online(
+                        mqtt_binding.device_type,
+                        mqtt_binding.device_id,
+                        ROBOT_PONG_TIMEOUT_SECONDS)) {
+                    printf("watering mqtt ros bridge offline: type=%s id=%s\n",
+                        mqtt_binding.device_type, mqtt_binding.device_id);
+                } else {
+                    build_water_bridge_detail(cmd.plant_id, cmd.duration, detail, sizeof(detail));
+                    mqtt_adapter_publish_bridge_command(cmd.plant_id, "water", detail);
+                    dispatched_to_mqtt_device = 1;
+                    ok = 1;
+                    printf("watering delegated to mqtt ros bridge: type=%s id=%s\n",
+                        mqtt_binding.device_type, mqtt_binding.device_id);
+                }
             } else {
                 char detail[128];
-                snprintf(detail, sizeof(detail), "duration=%d", cmd.duration);
+                build_water_bridge_detail(cmd.plant_id, cmd.duration, detail, sizeof(detail));
                 if (ros2_bridge_publish_command(cmd.plant_id, "water", detail)) {
                     dispatched_to_ros2 = 1;
                     ok = 1;

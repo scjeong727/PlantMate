@@ -6,7 +6,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
-import android.widget.EditText;
 import android.widget.Spinner;
 import android.widget.TextView;
 
@@ -29,8 +28,6 @@ public class RobotFragment extends Fragment implements MainActivity.ServiceAware
     private ArrayAdapter<String> plantAdapter;
 
     private Spinner spinnerPlant;
-    private EditText editLinear;
-    private EditText editAngular;
     private TextView textStatus;
 
     @Nullable
@@ -44,15 +41,15 @@ public class RobotFragment extends Fragment implements MainActivity.ServiceAware
         super.onViewCreated(view, savedInstanceState);
 
         spinnerPlant = view.findViewById(R.id.spinner_robot_plant);
-        editLinear = view.findViewById(R.id.edit_robot_linear);
-        editAngular = view.findViewById(R.id.edit_robot_angular);
         textStatus = view.findViewById(R.id.text_robot_status);
 
         plantAdapter = new ArrayAdapter<>(requireContext(), android.R.layout.simple_spinner_item, new ArrayList<>());
         plantAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinnerPlant.setAdapter(plantAdapter);
 
-        ((Button) view.findViewById(R.id.btn_robot_move)).setOnClickListener(v -> sendMove());
+        Button moveButton = view.findViewById(R.id.btn_robot_move);
+        moveButton.setEnabled(false);
+        moveButton.setOnClickListener(v -> sendMove());
         ((Button) view.findViewById(R.id.btn_robot_stop)).setOnClickListener(v -> sendStop());
     }
 
@@ -87,22 +84,23 @@ public class RobotFragment extends Fragment implements MainActivity.ServiceAware
     }
 
     private void sendMove() {
-        float linear;
-        float angular;
-        try {
-            linear = Float.parseFloat(editLinear.getText().toString().trim());
-            angular = Float.parseFloat(editAngular.getText().toString().trim());
-        } catch (NumberFormatException exception) {
-            showStatus("linear/angular 값을 확인하세요.");
+        PlantProfile plant = getSelectedPlant();
+        if (plant == null) {
+            showStatus("식물을 선택하세요.");
             return;
         }
 
-        String detail = String.format(Locale.US, "linear=%.3f angular=%.3f", linear, angular);
+        String detail = String.format(
+                Locale.US,
+                "x=%.3f y=%.3f",
+                1.0,
+                0.0
+        );
         sendRobotCommand("move", detail);
     }
 
     private void sendStop() {
-        sendRobotCommand("move", "linear=0.000 angular=0.000");
+        showStatus("정지는 현재 좌표 이동 방식에서 사용하지 않습니다.");
     }
 
     private void sendRobotCommand(String action, String detail) {

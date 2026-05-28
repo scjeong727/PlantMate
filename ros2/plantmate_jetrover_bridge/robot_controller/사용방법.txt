@@ -3,6 +3,10 @@
 cd ~/ros2_ws/src/app/app
 
 python3 robot_command_node.py
+python3 robot_heartbeat_node.py
+
+robot_command_node.py: move/water 명령 처리, /controller/cmd_vel 발행
+robot_heartbeat_node.py: 서버 PING 수신, device/arm/robot-1/status 로 PONG 발행
 
 
 서버
@@ -24,3 +28,20 @@ python3 robot_command_node.py
 4번째 터미널 창 로봇으로 물주기 명령 쏘기 (동작 테스트용)
 
 mosquitto_pub -h 192.168.0.4 -p 1883 -t "/plantmate/robot_command" -m '{"action": "water", "plantId": 1, "detail": "Complete"}'
+
+
+가상 ROS2 로봇 노드
+
+실제 JetRover 없이 서버의 MQTT 1883 명령을 받는 테스트용 노드입니다.
+서버가 같은 WSL 안에서 실행 중이면 기본값 그대로 실행합니다.
+
+cd /mnt/c/Users/user/DeploymentProgram/ros2/plantmate_jetrover_bridge/robot_controller
+python3 virtual_mqtt_robot_node.py
+
+서버 IP를 직접 지정해야 하면 다음처럼 실행합니다.
+
+python3 virtual_mqtt_robot_node.py --ros-args -p mqtt_host:=192.168.0.4 -p mqtt_port:=1883
+
+상태 ACK 확인 토픽:
+
+device/arm/robot-1/status

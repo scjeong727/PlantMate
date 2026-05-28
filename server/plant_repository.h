@@ -9,6 +9,8 @@ int plant_repository_add(
     int user_id,
     const char* name,
     const char* type,
+    int has_position_x, double position_x,
+    int has_position_y, double position_y,
     double temp_min, double temp_max,
     double humi_min, double humi_max,
     int soil_min, int soil_max,
@@ -25,6 +27,8 @@ int plant_repository_edit(
     int user_id,
     const char* name,
     const char* type,
+    int has_position_x, double position_x,
+    int has_position_y, double position_y,
     double temp_min, double temp_max,
     double humi_min, double humi_max,
     int soil_min, int soil_max,
@@ -34,5 +38,12 @@ int plant_repository_edit(
 int plant_repository_remove_sensor_data_by_plant(MYSQL* conn, int plant_id);
 int plant_repository_remove_events_by_plant(MYSQL* conn, int plant_id);
 int plant_repository_exists_by_user(MYSQL* conn, int plant_id, int user_id);
+int plant_repository_get_position(
+    MYSQL* conn,
+    int plant_id,
+    double* position_x,
+    double* position_y,
+    int* has_position
+);
 
 #endif

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/menu_detail_info"
+        android:icon="@mipmap/ic_launcher"
+        android:title="정보" />
+    <item
+        android:id="@+id/menu_detail_water"
+        android:icon="@mipmap/ic_launcher"
+        android:title="급수" />
+    <item
+        android:id="@+id/menu_detail_robot"
+        android:icon="@mipmap/ic_launcher"
+        android:title="로봇" />
+    <item
+        android:id="@+id/menu_detail_log"
+        android:icon="@mipmap/ic_launcher"
+        android:title="로그" />
+</menu>

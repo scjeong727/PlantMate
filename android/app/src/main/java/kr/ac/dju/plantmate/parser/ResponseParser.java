@@ -66,6 +66,8 @@ public class ResponseParser {
                     item.optInt("user_id", -1),
                     item.optString("name", ""),
                     item.optString("type", ""),
+                    readNullableDouble(item, "position_x"),
+                    readNullableDouble(item, "position_y"),
                     item.optDouble("temp_min", 0.0),
                     item.optDouble("temp_max", 0.0),
                     item.optDouble("humi_min", 0.0),
@@ -168,5 +170,12 @@ public class ResponseParser {
         }
 
         return trimmed.charAt(0) == token ? 0 : trimmed.indexOf(token);
+    }
+
+    private Double readNullableDouble(JSONObject object, String key) {
+        if (!object.has(key) || object.isNull(key)) {
+            return null;
+        }
+        return object.optDouble(key, 0.0);
     }
 }

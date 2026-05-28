@@ -1,0 +1,6 @@
+{
+  "defaultHost": "192.168.0.6",
+  "mqttPort": 1883,
+  "tcpPort": 9000,
+  "clientId": "PlantMate-Android"
+}

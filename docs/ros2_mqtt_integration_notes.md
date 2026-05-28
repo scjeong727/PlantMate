@@ -2,6 +2,9 @@
 
 Date: 2026-05-19
 
+> Deprecated: 이 문서는 초기 통합 과정의 작업 노트입니다. 최신 실행 절차와 설정값은
+> `docs/plantmate_ros2_current_setup.md`를 기준으로 확인하세요.
+
 ## Current Direction
 
 The server currently routes robot-related commands through MQTT bindings first,

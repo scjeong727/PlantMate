@@ -4,6 +4,7 @@
     <color name="primary_blue_dark">#315D95</color>
     <color name="secondary_teal">#5E9E8A</color>
     <color name="danger_red">#C96A5C</color>
+    <color name="plant_placeholder_purple">#8B5CF6</color>
     <color name="surface_card">#FDFEFF</color>
     <color name="surface_soft">#EEF4FB</color>
     <color name="surface_section">#F7FAFD</color>
