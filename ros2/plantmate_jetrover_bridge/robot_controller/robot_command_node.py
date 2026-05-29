@@ -4,7 +4,6 @@ import subprocess
 import sys
 import threading
 from pathlib import Path
-from typing import Callable, Dict, Tuple
 
 import paho.mqtt.client as mqtt
 import rclpy
@@ -12,7 +11,7 @@ from rclpy.node import Node
 from std_msgs.msg import String
 
 
-def parse_detail(detail: str) -> Dict[str, str]:
+def parse_detail(detail: str):
     parsed = {}
     if not detail:
         return parsed
@@ -33,8 +32,6 @@ def parse_detail(detail: str) -> Dict[str, str]:
 
 
 class CommandNode(Node):
-    SUPPORTED_ACTIONS = {"water", "move"}
-
     def __init__(self):
         super().__init__("command_node")
 
@@ -54,10 +51,8 @@ class CommandNode(Node):
 
         self.status_topic = f"device/{self.device_type}/{self.device_id}/status"
         self.script_dir = Path(__file__).resolve().parent
-        self.water_lock = threading.Lock()
-        self.move_lock = threading.Lock()
-        self.water_running = False
-        self.move_running = False
+        self.task_lock = threading.Lock()
+        self.active_task = None
 
         self.create_subscription(String, self.ros_command_topic, self.on_ros_command, 10)
 
@@ -86,7 +81,6 @@ class CommandNode(Node):
 
     def publish_pong(self, data: dict):
         if self.mqtt_client is None:
-            self.get_logger().warn("MQTT disconnected, PONG skipped")
             return
         payload = {
             "eventType": "PONG",
@@ -94,140 +88,146 @@ class CommandNode(Node):
             "deviceId": self.device_id,
             "requestId": data.get("requestId", ""),
         }
-        result = self.mqtt_client.publish(self.status_topic, json.dumps(payload), qos=1)
-        if result.rc == mqtt.MQTT_ERR_SUCCESS:
-            self.get_logger().info(f"PONG sent: {payload}")
-        else:
-            self.get_logger().warn(f"PONG publish failed: rc={result.rc}")
+        self.mqtt_client.publish(self.status_topic, json.dumps(payload), qos=1)
 
     def is_targeted_to_this_device(self, data: dict):
         target_type = str(data.get("targetDeviceType", "")).strip()
         target_id = str(data.get("targetDeviceId", "")).strip()
-
         if target_type and target_type != self.device_type:
             return False
         if target_id and target_id != self.device_id:
             return False
         return True
 
-    def parse_xy(self, detail_data: Dict[str, str], x_key: str = "x", y_key: str = "y") -> Tuple[float, float]:
-        return float(detail_data.get(x_key, 0.0)), float(detail_data.get(y_key, 0.0))
+    def acquire_task(self, task_name: str):
+        with self.task_lock:
+            if self.active_task is not None:
+                return False, self.active_task
+            self.active_task = task_name
+            return True, ""
 
-    def parse_water_targets(self, detail: str) -> Tuple[float, float, float, float]:
-        detail_data = parse_detail(detail)
-        target_x, target_y = self.parse_xy(detail_data, "x", "y")
-        home_x = float(
-            detail_data.get(
-                "home_x",
-                detail_data.get("origin_x", detail_data.get("back_x", 0.0)),
-            )
-        )
-        home_y = float(
-            detail_data.get(
-                "home_y",
-                detail_data.get("origin_y", detail_data.get("back_y", 0.0)),
-            )
-        )
-        return target_x, target_y, home_x, home_y
+    def release_task(self):
+        with self.task_lock:
+            self.active_task = None
 
-    def run_script(self, script_name: str, script_args=None):
+    def run_script(self, script_name: str, args=None, timeout_sec: int = 120):
         script_path = self.script_dir / script_name
         if not script_path.exists():
-            raise FileNotFoundError(f"스크립트를 찾을 수 없습니다: {script_path}")
-        self.get_logger().info(f"[script] start: {script_name}")
-        timeout_sec = 90
-        if script_name == "run_watering_demo.py":
-            timeout_sec = 30
-        elif script_name == "run_move_demo.py":
-            timeout_sec = 150
+            raise FileNotFoundError(f"missing script: {script_path}")
+
         cmd = [sys.executable, str(script_path)]
-        if script_args:
-            cmd.extend(script_args)
-        subprocess.run(
-            cmd,
-            cwd=str(self.script_dir),
-            check=True,
-            timeout=timeout_sec,
-        )
+        if args:
+            cmd.extend(args)
+
+        self.get_logger().info(f"[script] start: {' '.join(cmd)}")
+        subprocess.run(cmd, cwd=str(self.script_dir), check=True, timeout=timeout_sec)
         self.get_logger().info(f"[script] done: {script_name}")
 
-    def start_sequence(
-        self,
-        lock: threading.Lock,
-        running_attr: str,
-        busy_message: str,
-        worker_fn: Callable[[], None],
-    ):
-        with lock:
-            if getattr(self, running_attr):
-                self.get_logger().warn(busy_message)
-                return
-            setattr(self, running_attr, True)
+    def start_task(self, task_name: str, plant_id: int, detail: str, worker_fn):
+        ok, running = self.acquire_task(task_name)
+        if not ok:
+            self.publish_status(f"{task_name.upper()}_FAILED", plant_id, f"task busy: {running}")
+            self.get_logger().warn(f"task busy: {running}")
+            return
 
-        def runner():
+        def worker():
             try:
+                self.publish_status(f"{task_name.upper()}_STARTED", plant_id, detail)
                 worker_fn()
+                self.publish_status(f"{task_name.upper()}_DONE", plant_id, detail)
+            except Exception as e:
+                self.get_logger().error(f"{task_name} failed: {e}")
+                self.publish_status(f"{task_name.upper()}_FAILED", plant_id, str(e))
             finally:
-                with lock:
-                    setattr(self, running_attr, False)
+                self.release_task()
 
-        threading.Thread(target=runner, daemon=True).start()
+        threading.Thread(target=worker, daemon=True).start()
 
-    def start_water_scripts(
-        self,
-        plant_id: int,
-        target_x: float,
-        target_y: float,
-        home_x: float,
-        home_y: float,
-    ):
+    def start_move(self, plant_id: int, target_x: float, target_y: float):
+        detail = f"x={target_x} y={target_y}"
+
         def worker():
-            try:
-                detail = f"to=({target_x},{target_y}) home=({home_x},{home_y})"
-                self.publish_status("WATER_SEQUENCE_STARTED", plant_id, detail)
-                self.run_script("pick_demo.py")
-                self.run_script(
-                    "run_move_demo.py",
-                    ["--x", str(target_x), "--y", str(target_y)],
-                )
-                self.run_script("run_watering_demo.py")
-                self.run_script(
-                    "run_move_demo.py",
-                    ["--x", str(home_x), "--y", str(home_y)],
-                )
-                self.run_script("run_watering_end_demo.py")
-                self.publish_status("WATER_SEQUENCE_DONE", plant_id)
-            except Exception as e:
-                self.get_logger().error(f"water sequence failed: {e}")
-                self.publish_status("WATER_SEQUENCE_FAILED", plant_id, str(e))
+            self.run_script(
+                "run_move_demo.py",
+                ["--x", str(target_x), "--y", str(target_y)],
+                timeout_sec=150,
+            )
 
-        self.start_sequence(
-            self.water_lock,
-            "water_running",
-            "water sequence already running",
-            worker,
+        self.start_task("move", plant_id, detail, worker)
+
+    def start_water(self, plant_id: int, target_x: float, target_y: float, home_x: float, home_y: float):
+        detail = f"x={target_x} y={target_y} home_x={home_x} home_y={home_y}"
+
+        def worker():
+            self.run_script(
+                "run_water_sequence.py",
+                [
+                    "--x",
+                    str(target_x),
+                    "--y",
+                    str(target_y),
+                    "--home-x",
+                    str(home_x),
+                    "--home-y",
+                    str(home_y),
+                ],
+                timeout_sec=240,
+            )
+
+        self.start_task("water_sequence", plant_id, detail, worker)
+
+    def dispatch_command(self, data: dict):
+        action_raw = str(data.get("action", "")).strip()
+        action = action_raw.lower()
+        try:
+            plant_id = int(data.get("plantId", 0))
+        except Exception:
+            plant_id = 0
+        detail = str(data.get("detail", "")).strip()
+
+        self.get_logger().info(
+            f"Received command: plant_id={plant_id}, action={action_raw}, detail={detail}"
         )
 
-    def start_move_script(self, plant_id: int, target_x: float, target_y: float):
-        def worker():
-            try:
-                detail = f"x={target_x} y={target_y}"
-                self.publish_status("MOVE_STARTED", plant_id, detail)
-                self.run_script(
-                    "run_move_demo.py",
-                    ["--x", str(target_x), "--y", str(target_y)],
-                )
-                self.publish_status("MOVE_DONE", plant_id, detail)
-            except Exception as e:
-                self.get_logger().error(f"move sequence failed: {e}")
-                self.publish_status("MOVE_FAILED", plant_id, str(e))
+        if not self.is_targeted_to_this_device(data):
+            return
 
-        self.start_sequence(
-            self.move_lock,
-            "move_running",
-            "move sequence already running",
-            worker,
-        )
+        if action == "ping":
+            self.publish_pong(data)
+            return
+
+        if action not in {"move", "water"}:
+            self.get_logger().warn(f"Unsupported action: {action_raw}")
+            return
+
+        self.publish_status("COMMAND_RECEIVED", plant_id, detail)
+        detail_data = parse_detail(detail)
+
+        if action == "move":
+            try:
+                target_x = float(detail_data.get("x", 0.0))
+                target_y = float(detail_data.get("y", 0.0))
+            except Exception as e:
+                self.publish_status("MOVE_FAILED", plant_id, f"invalid move coordinate: {e}")
+                self.get_logger().error(f"invalid move coordinate: {e}")
+                return
+            self.start_move(plant_id, target_x, target_y)
+            return
+
+        try:
+            target_x = float(detail_data.get("x", 0.0))
+            target_y = float(detail_data.get("y", 0.0))
+            home_x = float(
+                detail_data.get("home_x", detail_data.get("origin_x", detail_data.get("back_x", -target_x)))
+            )
+            home_y = float(
+                detail_data.get("home_y", detail_data.get("origin_y", detail_data.get("back_y", -target_y)))
+            )
+        except Exception as e:
+            self.publish_status("WATER_SEQUENCE_FAILED", plant_id, f"invalid water coordinate: {e}")
+            self.get_logger().error(f"invalid water coordinate: {e}")
+            return
+        self.start_water(plant_id, target_x, target_y, home_x, home_y)
 
     def on_mqtt_message(self, client, userdata, msg):
         try:
@@ -242,56 +242,6 @@ class CommandNode(Node):
             self.dispatch_command(data)
         except Exception as e:
             self.get_logger().error(f"Invalid command json: {e}")
-
-    def dispatch_command(self, data: dict):
-        action_raw = str(data.get("action", "")).strip()
-        action = action_raw.lower()
-        try:
-            plant_id = int(data.get("plantId", 0))
-        except Exception:
-            plant_id = 0
-            self.get_logger().warn(f"Invalid plantId: {data.get('plantId')}, defaulting to 0")
-        detail = str(data.get("detail", "")).strip()
-
-        self.get_logger().info(
-            f"Received command: plant_id={plant_id}, action={action_raw}, detail={detail}"
-        )
-
-        if not self.is_targeted_to_this_device(data):
-            self.get_logger().info(
-                f"Command ignored for target={data.get('targetDeviceType', '')}/{data.get('targetDeviceId', '')}"
-            )
-            return
-
-        if action == "ping":
-            self.publish_pong(data)
-            return
-
-        if action not in self.SUPPORTED_ACTIONS:
-            self.get_logger().warn(f"Unsupported action: {action_raw}")
-            return
-
-        self.publish_status("COMMAND_RECEIVED", plant_id, detail)
-
-        if action == "water":
-            try:
-                target_x, target_y, home_x, home_y = self.parse_water_targets(detail)
-            except Exception as e:
-                self.get_logger().error(f"물주기 좌표 파싱 실패: {e}")
-                self.publish_status("WATER_SEQUENCE_FAILED", plant_id, str(e))
-                return
-            self.start_water_scripts(plant_id, target_x, target_y, home_x, home_y)
-            return
-
-        if action == "move":
-            try:
-                target_x, target_y = self.parse_xy(parse_detail(detail), "x", "y")
-            except Exception as e:
-                self.get_logger().error(f"좌표 파싱 실패: {e}")
-                self.publish_status("MOVE_FAILED", plant_id, str(e))
-                return
-            self.start_move_script(plant_id, target_x, target_y)
-            return
 
     def destroy_node(self):
         if self.mqtt_client is not None:

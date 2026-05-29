@@ -6,17 +6,21 @@ import time
 from pathlib import Path
 
 import rclpy
-from geometry_msgs.msg import PoseStamped
+from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry
 from rclpy.node import Node
 
 
 DEFAULT_CONFIG = {
-    "nav_goal_topic": "/goal_pose",
     "odom_topic": "/odom",
+    "cmd_vel_topic": "/controller/cmd_vel",
     "goal_tolerance": 0.15,
+    "angle_tolerance": 0.2,
+    "linear_gain": 0.35,
+    "angular_gain": 1.2,
+    "max_linear_speed": 0.25,
+    "max_angular_speed": 0.8,
     "command_timeout_sec": 120.0,
-    "goal_frame_id": "map",
 }
 
 
@@ -27,7 +31,6 @@ def load_config(path: Path):
 
     with path.open("r", encoding="utf-8") as file:
         loaded = json.load(file)
-
     if not isinstance(loaded, dict):
         raise ValueError("config root must be a JSON object")
 
@@ -37,15 +40,42 @@ def load_config(path: Path):
     return config
 
 
-class MoveGoalRunner(Node):
+def normalize_angle(angle: float):
+    while angle > math.pi:
+        angle -= 2.0 * math.pi
+    while angle < -math.pi:
+        angle += 2.0 * math.pi
+    return angle
+
+
+def yaw_from_quaternion(q):
+    siny_cosp = 2.0 * (q.w * q.z + q.x * q.y)
+    cosy_cosp = 1.0 - 2.0 * (q.y * q.y + q.z * q.z)
+    return math.atan2(siny_cosp, cosy_cosp)
+
+
+def clamp(value: float, min_value: float, max_value: float):
+    return max(min_value, min(max_value, value))
+
+
+class MoveRunner(Node):
     def __init__(self, target_x: float, target_y: float):
-        super().__init__("move_goal_runner")
+        super().__init__("move_runner")
 
         self.target_x = target_x
         self.target_y = target_y
+
+        self.raw_x = 0.0
+        self.raw_y = 0.0
+        self.raw_yaw = 0.0
         self.current_x = 0.0
         self.current_y = 0.0
+        self.current_yaw = 0.0
+        self.origin_x = 0.0
+        self.origin_y = 0.0
+        self.origin_yaw = 0.0
         self.has_odom = False
+        self.has_origin = False
         self.done = False
         self.success = False
         self.start_time = time.monotonic()
@@ -62,74 +92,112 @@ class MoveGoalRunner(Node):
             config = dict(DEFAULT_CONFIG)
             self.get_logger().error(f"Failed to load config {config_path}: {e}. Using defaults.")
 
-        self.declare_parameter("nav_goal_topic", str(config["nav_goal_topic"]))
         self.declare_parameter("odom_topic", str(config["odom_topic"]))
+        self.declare_parameter("cmd_vel_topic", str(config["cmd_vel_topic"]))
         self.declare_parameter("goal_tolerance", float(config["goal_tolerance"]))
+        self.declare_parameter("angle_tolerance", float(config["angle_tolerance"]))
+        self.declare_parameter("linear_gain", float(config["linear_gain"]))
+        self.declare_parameter("angular_gain", float(config["angular_gain"]))
+        self.declare_parameter("max_linear_speed", float(config["max_linear_speed"]))
+        self.declare_parameter("max_angular_speed", float(config["max_angular_speed"]))
         self.declare_parameter("command_timeout_sec", float(config["command_timeout_sec"]))
-        self.declare_parameter("goal_frame_id", str(config["goal_frame_id"]))
 
-        self.nav_goal_topic = self.get_parameter("nav_goal_topic").get_parameter_value().string_value
         self.odom_topic = self.get_parameter("odom_topic").get_parameter_value().string_value
+        self.cmd_vel_topic = self.get_parameter("cmd_vel_topic").get_parameter_value().string_value
         self.goal_tolerance = self.get_parameter("goal_tolerance").get_parameter_value().double_value
+        self.angle_tolerance = self.get_parameter("angle_tolerance").get_parameter_value().double_value
+        self.linear_gain = self.get_parameter("linear_gain").get_parameter_value().double_value
+        self.angular_gain = self.get_parameter("angular_gain").get_parameter_value().double_value
+        self.max_linear_speed = self.get_parameter("max_linear_speed").get_parameter_value().double_value
+        self.max_angular_speed = self.get_parameter("max_angular_speed").get_parameter_value().double_value
         self.command_timeout_sec = self.get_parameter("command_timeout_sec").get_parameter_value().double_value
-        self.goal_frame_id = self.get_parameter("goal_frame_id").get_parameter_value().string_value
 
-        self.nav_pub = self.create_publisher(PoseStamped, self.nav_goal_topic, 10)
+        self.cmd_vel_pub = self.create_publisher(Twist, self.cmd_vel_topic, 10)
         self.create_subscription(Odometry, self.odom_topic, self.on_odom, 10)
-        self.create_timer(1.0, self.publish_goal)
-        self.create_timer(0.1, self.watch_goal)
+        self.create_timer(0.1, self.control_loop)
 
-        self.publish_goal()
-        self.get_logger().info(
-            f"[move] goal start -> X: {self.target_x:.3f}, Y: {self.target_y:.3f}"
-        )
+        self.get_logger().info(f"[move] start relative goal -> x={self.target_x}, y={self.target_y}")
 
     def on_odom(self, msg: Odometry):
         pose = msg.pose.pose
-        self.current_x = pose.position.x
-        self.current_y = pose.position.y
+        self.raw_x = pose.position.x
+        self.raw_y = pose.position.y
+        self.raw_yaw = yaw_from_quaternion(pose.orientation)
         self.has_odom = True
 
-    def publish_goal(self):
+        if not self.has_origin:
+            self.origin_x = self.raw_x
+            self.origin_y = self.raw_y
+            self.origin_yaw = self.raw_yaw
+            self.has_origin = True
+
+        dx = self.raw_x - self.origin_x
+        dy = self.raw_y - self.origin_y
+        cos_yaw = math.cos(-self.origin_yaw)
+        sin_yaw = math.sin(-self.origin_yaw)
+        self.current_x = dx * cos_yaw - dy * sin_yaw
+        self.current_y = dx * sin_yaw + dy * cos_yaw
+        self.current_yaw = normalize_angle(self.raw_yaw - self.origin_yaw)
+
+    def publish_stop(self):
+        self.cmd_vel_pub.publish(Twist())
+
+    def finish(self, success: bool, message: str):
         if self.done:
             return
-        goal_msg = PoseStamped()
-        goal_msg.header.frame_id = self.goal_frame_id
-        goal_msg.header.stamp = self.get_clock().now().to_msg()
-        goal_msg.pose.position.x = self.target_x
-        goal_msg.pose.position.y = self.target_y
-        goal_msg.pose.orientation.w = 1.0
-        self.nav_pub.publish(goal_msg)
+        self.done = True
+        self.success = success
+        self.publish_stop()
+        if success:
+            self.get_logger().info(message)
+        else:
+            self.get_logger().error(message)
 
-    def watch_goal(self):
+    def control_loop(self):
         if self.done:
             return
 
         elapsed = time.monotonic() - self.start_time
         if elapsed > self.command_timeout_sec:
-            self.done = True
-            self.success = False
-            self.get_logger().error(
-                f"[move] timeout after {elapsed:.1f}s -> X: {self.target_x:.3f}, Y: {self.target_y:.3f}"
-            )
+            self.finish(False, f"[move] timeout after {elapsed:.1f}s")
             return
 
         if not self.has_odom:
             return
 
-        distance = math.hypot(self.target_x - self.current_x, self.target_y - self.current_y)
+        dx = self.target_x - self.current_x
+        dy = self.target_y - self.current_y
+        distance = math.hypot(dx, dy)
         if distance <= self.goal_tolerance:
-            self.done = True
-            self.success = True
-            self.get_logger().info(
-                f"[move] arrived -> X: {self.target_x:.3f}, Y: {self.target_y:.3f}, dist={distance:.3f}"
+            self.finish(True, f"[move] arrived dist={distance:.3f}")
+            return
+
+        target_yaw = math.atan2(dy, dx)
+        yaw_error = normalize_angle(target_yaw - self.current_yaw)
+
+        cmd = Twist()
+        cmd.angular.z = clamp(
+            self.angular_gain * yaw_error,
+            -self.max_angular_speed,
+            self.max_angular_speed,
+        )
+        if abs(yaw_error) <= self.angle_tolerance:
+            cmd.linear.x = clamp(
+                self.linear_gain * distance,
+                0.0,
+                self.max_linear_speed,
             )
+        self.cmd_vel_pub.publish(cmd)
+
+    def destroy_node(self):
+        self.publish_stop()
+        super().destroy_node()
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Simple move goal script")
-    parser.add_argument("--x", type=float, default=0.0, help="Target X")
-    parser.add_argument("--y", type=float, default=0.0, help="Target Y")
+    parser = argparse.ArgumentParser(description="Relative move script")
+    parser.add_argument("--x", type=float, default=0.0, help="Relative target X")
+    parser.add_argument("--y", type=float, default=0.0, help="Relative target Y")
     return parser.parse_args()
 
 
@@ -139,10 +207,10 @@ def main():
     node = None
     exit_code = 1
     try:
-        node = MoveGoalRunner(args.x, args.y)
+        node = MoveRunner(args.x, args.y)
         while rclpy.ok() and not node.done:
             rclpy.spin_once(node, timeout_sec=0.1)
-        exit_code = 0 if node and node.success else 1
+        exit_code = 0 if (node and node.success) else 1
     except KeyboardInterrupt:
         exit_code = 130
     finally:
@@ -158,3 +226,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
