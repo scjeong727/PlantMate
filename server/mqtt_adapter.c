@@ -163,6 +163,10 @@ static void mqtt_close_client(MqttClient* client)
     if (!client || !client->in_use)
         return;
 
+    printf("[mqtt] close fd=%d client_id=%s\n",
+        client->sock,
+        client->client_id[0] ? client->client_id : "(unknown)");
+    fflush(stdout);
     close(client->sock);
     memset(client, 0, sizeof(*client));
 }
@@ -176,11 +180,37 @@ static MqttClient* mqtt_alloc_client(int sock)
             memset(&g_clients[i], 0, sizeof(g_clients[i]));
             g_clients[i].sock = sock;
             g_clients[i].in_use = 1;
+            printf("[mqtt] accept fd=%d slot=%d\n", sock, i);
+            fflush(stdout);
             return &g_clients[i];
         }
     }
 
     return NULL;
+}
+
+static void mqtt_close_duplicate_client_id(MqttClient* current)
+{
+    int i;
+
+    if (!current || current->client_id[0] == '\0')
+        return;
+
+    pthread_mutex_lock(&g_clients_mutex);
+    for (i = 0; i < MQTT_MAX_CLIENTS; ++i) {
+        MqttClient* other = &g_clients[i];
+        if (!other->in_use || other == current || other->client_id[0] == '\0')
+            continue;
+        if (strcmp(other->client_id, current->client_id) == 0) {
+            printf("[mqtt] duplicate client_id=%s, closing old fd=%d new fd=%d\n",
+                current->client_id,
+                other->sock,
+                current->sock);
+            fflush(stdout);
+            mqtt_close_client(other);
+        }
+    }
+    pthread_mutex_unlock(&g_clients_mutex);
 }
 
 static int mqtt_write_publish(int sock, const char* topic, const char* payload)
@@ -1065,6 +1095,14 @@ static void handle_publish(MqttClient* client, MYSQL* conn, unsigned char header
     memcpy(payload, body + pos, (size_t)(body_len - pos));
     payload[body_len - pos] = '\0';
 
+    printf("[mqtt] PUBLISH client_id=%s topic=%s qos=%d payload_len=%d payload=%.160s\n",
+        client && client->client_id[0] ? client->client_id : "(unknown)",
+        topic,
+        qos,
+        body_len - pos,
+        payload);
+    fflush(stdout);
+
     if (mqtt_is_app_request_topic(client, topic)) {
         handle_rpc_publish(client, conn, payload);
         return;
@@ -1171,6 +1209,12 @@ static void handle_connect_packet(MqttClient* client, unsigned char* body, int b
         client->client_id[copy_len] = '\0';
     }
 
+    printf("[mqtt] CONNECT fd=%d client_id=%s body_len=%d\n",
+        client->sock,
+        client->client_id[0] ? client->client_id : "(empty)",
+        body_len);
+    fflush(stdout);
+    mqtt_close_duplicate_client_id(client);
     mqtt_send_connack(client->sock);
 }
 
@@ -1200,6 +1244,11 @@ static void handle_subscribe_packet(MqttClient* client, unsigned char* body, int
                 copy_len = sizeof(client->subscriptions[0]) - 1;
             memcpy(client->subscriptions[client->subscription_count], body + pos, copy_len);
             client->subscriptions[client->subscription_count][copy_len] = '\0';
+            printf("[mqtt] SUBSCRIBE client_id=%s topic=%s qos=%u\n",
+                client->client_id[0] ? client->client_id : "(unknown)",
+                client->subscriptions[client->subscription_count],
+                (unsigned int)body[pos + topic_len]);
+            fflush(stdout);
             client->subscription_count++;
         }
 
@@ -1242,6 +1291,10 @@ static void handle_unsubscribe_packet(MqttClient* client, unsigned char* body, i
                     snprintf(client->subscriptions[j], sizeof(client->subscriptions[j]), "%s", client->subscriptions[j + 1]);
                 }
                 client->subscription_count--;
+                printf("[mqtt] UNSUBSCRIBE client_id=%s topic=%s\n",
+                    client->client_id[0] ? client->client_id : "(unknown)",
+                    topic);
+                fflush(stdout);
                 break;
             }
         }
@@ -1362,11 +1415,22 @@ void* mqtt_adapter_thread_main(void* arg)
                 !mqtt_read_remaining_length(client->sock, &remaining_len) ||
                 remaining_len < 0 || remaining_len > MQTT_MAX_PACKET ||
                 !recv_full(client->sock, body, remaining_len)) {
+                printf("[mqtt] recv failed fd=%d client_id=%s\n",
+                    client->sock,
+                    client->client_id[0] ? client->client_id : "(unknown)");
+                fflush(stdout);
                 mqtt_close_client(client);
                 continue;
             }
 
             pthread_mutex_unlock(&g_clients_mutex);
+
+            printf("[mqtt] packet client_id=%s type=%u flags=0x%X remaining=%d\n",
+                client->client_id[0] ? client->client_id : "(unknown)",
+                (unsigned int)(header >> 4),
+                (unsigned int)(header & 0x0F),
+                remaining_len);
+            fflush(stdout);
 
             switch (header >> 4) {
                 case 1:
@@ -1388,13 +1452,18 @@ void* mqtt_adapter_thread_main(void* arg)
                     handle_unsubscribe_packet(client, body, remaining_len);
                     break;
                 case 12:
+                    printf("[mqtt] PINGREQ client_id=%s\n",
+                        client->client_id[0] ? client->client_id : "(unknown)");
+                    fflush(stdout);
                     mqtt_send_pingresp(client->sock);
                     break;
                 case 14:
+                    printf("[mqtt] DISCONNECT client_id=%s\n",
+                        client->client_id[0] ? client->client_id : "(unknown)");
+                    fflush(stdout);
                     pthread_mutex_lock(&g_clients_mutex);
                     mqtt_close_client(client);
                     pthread_mutex_unlock(&g_clients_mutex);
-                    pthread_mutex_lock(&g_clients_mutex);
                     break;
                 default:
                     break;

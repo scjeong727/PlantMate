@@ -48,6 +48,10 @@ class CommandNode(Node):
         self.device_id = self.get_parameter("device_id").get_parameter_value().string_value
         self.command_topic = self.get_parameter("command_topic").get_parameter_value().string_value
         self.ros_command_topic = self.get_parameter("ros_command_topic").get_parameter_value().string_value
+        self.device_command_topics = [
+            f"device/{self.device_type}/{self.device_id}/move/command",
+            f"device/{self.device_type}/{self.device_id}/water/command",
+        ]
 
         self.status_topic = f"device/{self.device_type}/{self.device_id}/status"
         self.script_dir = Path(__file__).resolve().parent
@@ -57,13 +61,16 @@ class CommandNode(Node):
         self.create_subscription(String, self.ros_command_topic, self.on_ros_command, 10)
 
         try:
-            self.mqtt_client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION1)
+            client_id = f"command-{self.device_type}-{self.device_id}"
+            self.mqtt_client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION1, client_id=client_id)
             self.mqtt_client.on_message = self.on_mqtt_message
             self.mqtt_client.connect(self.mqtt_host, self.mqtt_port, 60)
             self.mqtt_client.loop_start()
-            self.mqtt_client.subscribe(self.command_topic)
+            subscribe_topics = [self.command_topic] + self.device_command_topics
+            for topic in dict.fromkeys(subscribe_topics):
+                self.mqtt_client.subscribe(topic)
             self.get_logger().info(
-                f"MQTT connected! Subscribed to {self.command_topic} | Pub: {self.status_topic}"
+                f"MQTT connected! Subscribed to {', '.join(dict.fromkeys(subscribe_topics))} | Pub: {self.status_topic}"
             )
         except Exception as e:
             self.mqtt_client = None
@@ -76,17 +83,6 @@ class CommandNode(Node):
             "eventType": event_type,
             "plantId": plant_id,
             "detail": detail,
-        }
-        self.mqtt_client.publish(self.status_topic, json.dumps(payload), qos=1)
-
-    def publish_pong(self, data: dict):
-        if self.mqtt_client is None:
-            return
-        payload = {
-            "eventType": "PONG",
-            "deviceType": self.device_type,
-            "deviceId": self.device_id,
-            "requestId": data.get("requestId", ""),
         }
         self.mqtt_client.publish(self.status_topic, json.dumps(payload), qos=1)
 
@@ -193,7 +189,7 @@ class CommandNode(Node):
             return
 
         if action == "ping":
-            self.publish_pong(data)
+            self.get_logger().debug("PING ignored by command node; handled by robot_heartbeat_node")
             return
 
         if action not in {"move", "water"}:
@@ -270,4 +266,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

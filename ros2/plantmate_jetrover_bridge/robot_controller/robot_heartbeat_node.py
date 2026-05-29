@@ -62,13 +62,16 @@ class RobotHeartbeatNode(Node):
         self.command_topic = self.get_parameter('command_topic').get_parameter_value().string_value
         self.status_topic = f'device/{self.device_type}/{self.device_id}/status'
 
-        self.mqtt_client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION1)
+        client_id = f'heartbeat-{self.device_type}-{self.device_id}'
+        self.mqtt_client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION1, client_id=client_id)
         self.mqtt_client.on_connect = self.on_connect
         self.mqtt_client.on_disconnect = self.on_disconnect
         self.mqtt_client.on_message = self.on_message
 
         try:
+            self.get_logger().info(f'Connecting MQTT: {self.mqtt_host}:{self.mqtt_port} as {client_id}')
             self.mqtt_client.connect(self.mqtt_host, self.mqtt_port, 60)
+            self.get_logger().info('MQTT TCP connect returned')
             self.mqtt_client.loop_start()
         except Exception as exc:
             self.get_logger().error(f'Failed to connect MQTT: {exc}')
@@ -152,7 +155,8 @@ def main():
         pass
     finally:
         node.destroy_node()
-        rclpy.shutdown()
+        if rclpy.ok():
+            rclpy.shutdown()
 
 
 if __name__ == '__main__':
