@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import argparse
+import math
 import subprocess
 import sys
 from pathlib import Path
@@ -15,7 +16,20 @@ def run_step(script_dir: Path, script_name: str, args=None, timeout_sec: int = 1
         cmd.extend(args)
 
     print(f"[water_sequence] start: {' '.join(cmd)}", flush=True)
-    subprocess.run(cmd, cwd=str(script_dir), check=True, timeout=timeout_sec)
+    try:
+        subprocess.run(cmd, cwd=str(script_dir), check=True, timeout=timeout_sec)
+    except subprocess.CalledProcessError as exc:
+        print(
+            f"[water_sequence] failed: {script_name} exit_code={exc.returncode}",
+            flush=True,
+        )
+        raise
+    except subprocess.TimeoutExpired:
+        print(
+            f"[water_sequence] timeout: {script_name} timeout={timeout_sec}s",
+            flush=True,
+        )
+        raise
     print(f"[water_sequence] done: {script_name}", flush=True)
 
 
@@ -31,27 +45,49 @@ def parse_args():
 def main():
     args = parse_args()
     script_dir = Path(__file__).resolve().parent
-
-    home_x = -args.x if args.home_x is None else args.home_x
-    home_y = -args.y if args.home_y is None else args.home_y
+    travel_yaw = math.atan2(args.y, args.x)
+    travel_distance = math.hypot(args.x, args.y)
 
     run_step(script_dir, "pick_demo.py", timeout_sec=120)
     run_step(
         script_dir,
-        "run_move_demo.py",
-        ["--x", str(args.x), "--y", str(args.y)],
-        timeout_sec=150,
+        "run_turn_demo.py",
+        ["--yaw", str(travel_yaw)],
+        timeout_sec=60,
+    )
+    run_step(
+        script_dir,
+        "run_drive_demo.py",
+        ["--distance", str(travel_distance)],
+        timeout_sec=120,
+    )
+    run_step(
+        script_dir,
+        "run_turn_demo.py",
+        ["--yaw", str(-travel_yaw)],
+        timeout_sec=60,
     )
     run_step(script_dir, "run_watering_demo.py", timeout_sec=60)
     run_step(
         script_dir,
-        "run_move_demo.py",
-        ["--x", str(home_x), "--y", str(home_y)],
-        timeout_sec=150,
+        "run_turn_demo.py",
+        ["--yaw", str(travel_yaw)],
+        timeout_sec=60,
+    )
+    run_step(
+        script_dir,
+        "run_drive_demo.py",
+        ["--distance", str(-travel_distance)],
+        timeout_sec=120,
+    )
+    run_step(
+        script_dir,
+        "run_turn_demo.py",
+        ["--yaw", str(-travel_yaw)],
+        timeout_sec=60,
     )
     run_step(script_dir, "run_watering_end_demo.py", timeout_sec=120)
 
 
 if __name__ == "__main__":
     main()
-

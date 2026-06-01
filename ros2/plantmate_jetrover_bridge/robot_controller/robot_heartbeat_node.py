@@ -67,6 +67,7 @@ class RobotHeartbeatNode(Node):
         self.mqtt_client.on_connect = self.on_connect
         self.mqtt_client.on_disconnect = self.on_disconnect
         self.mqtt_client.on_message = self.on_message
+        self.mqtt_client.reconnect_delay_set(min_delay=1, max_delay=10)
 
         try:
             self.get_logger().info(f'Connecting MQTT: {self.mqtt_host}:{self.mqtt_port} as {client_id}')

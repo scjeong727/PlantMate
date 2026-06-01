@@ -63,18 +63,38 @@ class CommandNode(Node):
         try:
             client_id = f"command-{self.device_type}-{self.device_id}"
             self.mqtt_client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION1, client_id=client_id)
+            self.mqtt_client.on_connect = self.on_mqtt_connect
+            self.mqtt_client.on_disconnect = self.on_mqtt_disconnect
             self.mqtt_client.on_message = self.on_mqtt_message
+            self.mqtt_client.reconnect_delay_set(min_delay=1, max_delay=10)
             self.mqtt_client.connect(self.mqtt_host, self.mqtt_port, 60)
             self.mqtt_client.loop_start()
-            subscribe_topics = [self.command_topic] + self.device_command_topics
-            for topic in dict.fromkeys(subscribe_topics):
-                self.mqtt_client.subscribe(topic)
             self.get_logger().info(
-                f"MQTT connected! Subscribed to {', '.join(dict.fromkeys(subscribe_topics))} | Pub: {self.status_topic}"
+                f"MQTT connecting to {self.mqtt_host}:{self.mqtt_port} | Pub: {self.status_topic}"
             )
         except Exception as e:
             self.mqtt_client = None
             self.get_logger().error(f"Failed to connect MQTT: {e}")
+
+    def mqtt_subscribe_topics(self, client):
+        subscribe_topics = list(dict.fromkeys([self.command_topic] + self.device_command_topics))
+        for topic in subscribe_topics:
+            client.subscribe(topic, qos=1)
+        self.get_logger().info(
+            f"MQTT connected! Subscribed to {', '.join(subscribe_topics)} | Pub: {self.status_topic}"
+        )
+
+    def on_mqtt_connect(self, client, userdata, flags, rc):
+        if rc != 0:
+            self.get_logger().error(f"MQTT connect failed: rc={rc}")
+            return
+        self.mqtt_subscribe_topics(client)
+
+    def on_mqtt_disconnect(self, client, userdata, rc):
+        if rc == 0:
+            self.get_logger().info("MQTT disconnected")
+        else:
+            self.get_logger().warn(f"MQTT disconnected unexpectedly: rc={rc}; reconnecting")
 
     def publish_status(self, event_type: str, plant_id: int, detail: str = ""):
         if self.mqtt_client is None:
@@ -151,22 +171,17 @@ class CommandNode(Node):
 
         self.start_task("move", plant_id, detail, worker)
 
-    def start_water(self, plant_id: int, target_x: float, target_y: float, home_x: float, home_y: float):
-        detail = f"x={target_x} y={target_y} home_x={home_x} home_y={home_y}"
+    def start_water(self, plant_id: int, target_x: float, target_y: float, home_x=None, home_y=None):
+        detail = f"x={target_x} y={target_y}"
+        script_args = ["--x", str(target_x), "--y", str(target_y)]
+        if home_x is not None and home_y is not None:
+            detail += f" home_x={home_x} home_y={home_y}"
+            script_args.extend(["--home-x", str(home_x), "--home-y", str(home_y)])
 
         def worker():
             self.run_script(
                 "run_water_sequence.py",
-                [
-                    "--x",
-                    str(target_x),
-                    "--y",
-                    str(target_y),
-                    "--home-x",
-                    str(home_x),
-                    "--home-y",
-                    str(home_y),
-                ],
+                script_args,
                 timeout_sec=240,
             )
 
@@ -213,12 +228,17 @@ class CommandNode(Node):
         try:
             target_x = float(detail_data.get("x", 0.0))
             target_y = float(detail_data.get("y", 0.0))
-            home_x = float(
-                detail_data.get("home_x", detail_data.get("origin_x", detail_data.get("back_x", -target_x)))
-            )
-            home_y = float(
-                detail_data.get("home_y", detail_data.get("origin_y", detail_data.get("back_y", -target_y)))
-            )
+            has_home_x = any(key in detail_data for key in ("home_x", "origin_x", "back_x"))
+            has_home_y = any(key in detail_data for key in ("home_y", "origin_y", "back_y"))
+            home_x = None
+            home_y = None
+            if has_home_x or has_home_y:
+                home_x = float(
+                    detail_data.get("home_x", detail_data.get("origin_x", detail_data.get("back_x", 0.0)))
+                )
+                home_y = float(
+                    detail_data.get("home_y", detail_data.get("origin_y", detail_data.get("back_y", 0.0)))
+                )
         except Exception as e:
             self.publish_status("WATER_SEQUENCE_FAILED", plant_id, f"invalid water coordinate: {e}")
             self.get_logger().error(f"invalid water coordinate: {e}")

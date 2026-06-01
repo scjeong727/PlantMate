@@ -318,6 +318,7 @@ int mqtt_device_registry_update_live_device(const char* device_type, const char*
 
         if (strcmp(g_live_devices[i].device_type, device_type) == 0 &&
             strcmp(g_live_devices[i].device_id, device_id) == 0) {
+            int was_online = g_live_devices[i].online;
             g_live_devices[i].online = 1;
             g_live_devices[i].updated_at = now;
             snprintf(g_live_devices[i].status_payload, sizeof(g_live_devices[i].status_payload),
@@ -325,6 +326,10 @@ int mqtt_device_registry_update_live_device(const char* device_type, const char*
             if (!mqtt_device_registry_save_live_device_locked(device_type, device_id, status_payload)) {
                 pthread_mutex_unlock(&g_registry_mutex);
                 return 0;
+            }
+            if (!was_online) {
+                printf("[mqtt] live device online: type=%s id=%s\n", device_type, device_id);
+                fflush(stdout);
             }
             pthread_mutex_unlock(&g_registry_mutex);
             return 1;
@@ -347,6 +352,8 @@ int mqtt_device_registry_update_live_device(const char* device_type, const char*
         pthread_mutex_unlock(&g_registry_mutex);
         return 0;
     }
+    printf("[mqtt] live device online: type=%s id=%s\n", device_type, device_id);
+    fflush(stdout);
     pthread_mutex_unlock(&g_registry_mutex);
     return 1;
 }
@@ -460,6 +467,11 @@ int mqtt_device_registry_mark_stale_live_devices_offline(int timeout_seconds)
         mqtt_device_registry_save_live_device_offline_locked(
             g_live_devices[i].device_type,
             g_live_devices[i].device_id);
+        printf("[mqtt] live device stale/offline: type=%s id=%s timeout=%ds\n",
+            g_live_devices[i].device_type,
+            g_live_devices[i].device_id,
+            timeout_seconds);
+        fflush(stdout);
         count++;
     }
     pthread_mutex_unlock(&g_registry_mutex);

@@ -31,6 +31,7 @@ public class MqttPlantGateway implements PlantGateway {
     private static final String KEY_BROKER_HOST = "broker_host";
     private static final String KEY_BROKER_PORT = "broker_port";
     private static final String KEY_BROKER_CLIENT = "broker_client";
+    private static final String ROS2_DEVICE_TYPE = "arm";
     private final SharedPreferences preferences;
     private final AppConfig appConfig;
     private final MqttManager mqttManager = new MqttManager();
@@ -242,7 +243,7 @@ public class MqttPlantGateway implements PlantGateway {
     @Override
     public List<String> loadWaterDevices() {
         try {
-            JSONObject response = sendRequest("getDeviceList", request -> request.put("deviceType", "pump"));
+            JSONObject response = sendRequest("getDeviceList", request -> request.put("deviceType", ROS2_DEVICE_TYPE));
             return responseParser.parseDeviceList("OK " + requireData(response).toString());
         } catch (Exception exception) {
             throw new IllegalStateException(exception.getMessage(), exception);
@@ -261,7 +262,7 @@ public class MqttPlantGateway implements PlantGateway {
         sendRequest("bindDevice", request -> {
             request.put("plantId", plantId);
             request.put("role", "water");
-            request.put("deviceType", "pump");
+            request.put("deviceType", ROS2_DEVICE_TYPE);
             request.put("deviceId", path.trim());
         });
         selectPlant(plantId);
@@ -290,7 +291,7 @@ public class MqttPlantGateway implements PlantGateway {
 
     @Override
     public List<String> loadRobotDevices() throws Exception {
-        JSONObject response = sendRequest("getDeviceList", request -> request.put("deviceType", "robot"));
+        JSONObject response = sendRequest("getDeviceList", request -> request.put("deviceType", ROS2_DEVICE_TYPE));
         return responseParser.parseDeviceList("OK " + requireData(response).toString());
     }
 
@@ -307,7 +308,7 @@ public class MqttPlantGateway implements PlantGateway {
         sendRequest("bindDevice", request -> {
             request.put("plantId", plantId);
             request.put("role", "robot");
-            request.put("deviceType", "robot");
+            request.put("deviceType", ROS2_DEVICE_TYPE);
             request.put("deviceId", deviceId.trim());
         });
         selectPlant(plantId);

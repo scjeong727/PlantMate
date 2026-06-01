@@ -21,12 +21,13 @@ class ActionGroupRunner(Node):
         self.pub = self.create_publisher(ServosPosition, TOPIC, 1)
         self.idx = 0
         self.timer = None
+        self.finished = False
         self.run_next_step()
 
     def run_next_step(self):
         if self.idx >= len(STEPS):
             self.get_logger().info("done")
-            rclpy.shutdown()
+            self.finished = True
             return
 
         step = STEPS[self.idx]
@@ -57,11 +58,16 @@ class ActionGroupRunner(Node):
 def main():
     rclpy.init()
     node = ActionGroupRunner()
-    rclpy.spin(node)
+    try:
+        while rclpy.ok() and not node.finished:
+            rclpy.spin_once(node, timeout_sec=0.1)
+    finally:
+        node.destroy_node()
+        if rclpy.ok():
+            rclpy.shutdown()
 
 if __name__ == "__main__":
     main()
-
 
 
 
