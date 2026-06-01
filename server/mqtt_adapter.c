@@ -14,6 +14,7 @@
 
 #include "db.h"
 #include "event_repository.h"
+#include "event_service.h"
 #include "db_queue.h"
 #include "event_log.h"
 #include "mqtt_device_registry.h"
@@ -985,6 +986,13 @@ static void handle_rpc_publish(MqttClient* client, MYSQL* conn, const char* payl
             mqtt_publish_rpc_ok_raw(client, request_id, "{\"message\":\"robot_command_published\"}");
             return;
         }
+
+        event_service_try_add(
+            conn,
+            plant_id,
+            "ROBOT_COMMAND",
+            detail
+        );
 
         if (ros2_bridge_publish_command(plant_id, robot_action, detail)) {
             mqtt_publish_rpc_ok_raw(client, request_id, "{\"message\":\"robot_command_published\"}");
