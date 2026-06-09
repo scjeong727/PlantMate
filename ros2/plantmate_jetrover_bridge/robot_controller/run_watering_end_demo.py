@@ -6,13 +6,13 @@ from ros_robot_controller_msgs.msg import ServoPosition, ServosPosition
 TOPIC = "/ros_robot_controller/bus_servo/set_position"
 
 STEPS = [
-    {"time_ms": 500,  "pos": {1: 875, 2: 550, 3: 300, 4: 300, 5: 500, 10: 450}},
-    {"time_ms": 1500, "pos": {1: 875, 2: 195, 3: 300, 4: 700, 5: 500, 10: 450}},
-    {"time_ms": 200,  "pos": {1: 875, 2: 195, 3: 300, 4: 600, 5: 500, 10: 450}},
-    {"time_ms": 500,  "pos": {1: 875, 2: 195, 3: 300, 4: 600, 5: 500, 10: 250}},
+    {"time_ms": 500,  "pos": {1: 875, 2: 550, 3: 300, 4: 300, 5: 500, 10: 900}},
+    {"time_ms": 1500, "pos": {1: 875, 2: 195, 3: 300, 4: 700, 5: 500, 10: 900}},
+    {"time_ms": 200,  "pos": {1: 875, 2: 195, 3: 300, 4: 600, 5: 500, 10: 500}},
+    {"time_ms": 500,  "pos": {1: 875, 2: 195, 3: 300, 4: 600, 5: 500, 10: 50}},
     {"time_ms": 200,  "pos": {1: 875, 2: 195, 3: 300, 4: 500, 5: 500, 10: 50}},
-    {"time_ms": 500,  "pos": {1: 875, 2: 300, 3: 150, 4: 300, 5: 500, 10: 450}},
-    {"time_ms": 1500, "pos": {1: 500, 2: 750, 3: 0,   4: 375, 5: 500, 10: 500}},
+    {"time_ms": 500,  "pos": {1: 875, 2: 300, 3: 150, 4: 300, 5: 500, 10: 15}},
+    {"time_ms": 1500, "pos": {1: 500, 2: 750, 3: 0,   4: 375, 5: 500, 10: 15}},
 ]
 
 class ActionGroupRunner(Node):
@@ -21,12 +21,13 @@ class ActionGroupRunner(Node):
         self.pub = self.create_publisher(ServosPosition, TOPIC, 1)
         self.idx = 0
         self.timer = None
+        self.finished = False
         self.run_next_step()
 
     def run_next_step(self):
         if self.idx >= len(STEPS):
             self.get_logger().info("done")
-            rclpy.shutdown()
+            self.finished = True
             return
 
         step = STEPS[self.idx]
@@ -57,11 +58,16 @@ class ActionGroupRunner(Node):
 def main():
     rclpy.init()
     node = ActionGroupRunner()
-    rclpy.spin(node)
+    try:
+        while rclpy.ok() and not node.finished:
+            rclpy.spin_once(node, timeout_sec=0.1)
+    finally:
+        node.destroy_node()
+        if rclpy.ok():
+            rclpy.shutdown()
 
 if __name__ == "__main__":
     main()
-
 
 
 

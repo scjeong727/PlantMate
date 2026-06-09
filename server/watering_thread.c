@@ -11,6 +11,7 @@
 #include "db.h"
 #include "db_queue.h"
 #include "event_log.h"
+#include "event_service.h"
 #include "mqtt_device_registry.h"
 #include "plant_repository.h"
 #include "watering_thread.h"
@@ -178,6 +179,19 @@ void* watering_thread_main(void* arg)
         }
 
         printf("watering end: plant_id=%d, ok=%d\n", cmd.plant_id, ok);
+
+        if (!dispatched_to_mqtt_device && !dispatched_to_ros2) {
+            MYSQL conn;
+            mysql_init(&conn);
+            if (db_connect(&conn)) {
+                if (ok) {
+                    event_service_try_add(&conn, cmd.plant_id, "WATER_SUCCESS", "Watering_completed");
+                } else {
+                    event_service_try_add(&conn, cmd.plant_id, "WATER_FAIL", "Watering_failed");
+                }
+                mysql_close(&conn);
+            }
+        }
 
         if (dispatched_to_mqtt_device || dispatched_to_ros2) {
             event_log_push(&g_event_log, cmd.plant_id, "WATERING_SENT", "Watering_command_published");

@@ -5,6 +5,7 @@
 #include "plant_service.h"
 #include "plant_repository.h"
 #include "command_queue.h"
+#include "event_service.h"
 #include "watering_lock.h"
 #include "plant_owner_cache.h"
 #include "plant_threshold_cache.h"
@@ -113,6 +114,8 @@ int plant_service_queue_watering(MYSQL* conn, int plant_id, int user_id, int dur
     cmd.duration = duration;
     cmd.owner_sock = owner_sock;
     command_queue_push(&g_command_queue, cmd);
+
+    event_service_try_add(conn, plant_id, "WATER_START", "Water_command_queued");
 
     snprintf(out, out_size, "OK {\"message\":\"watering_queued\"}\n");
     return 1;
